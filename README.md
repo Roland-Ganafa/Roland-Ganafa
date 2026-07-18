@@ -74,8 +74,13 @@ Conversation resumes immediately, out of sheer confusion.
   have a coffee sometime? Press 1 if yes, press 2 for maybe later."* AT posts
   the pressed key back to the same `/voice` URL, which replies (1 → set up the
   coffee, 2 → maybe another time); the call-ended ping (`isActive=0`) is
-  acknowledged with an empty body. `GOAT_AUDIO_URL`, if set to a direct
-  `.mp3`/`.wav`, plays as intro flair.
+  acknowledged with an empty body.
+- A goat bleat plays as intro flair. The app serves it from its own domain at
+  **`/goat.mp3`** (so AT can always `<Play>` valid audio): it proxies
+  `GOAT_SOURCE_URL` if that's a real audio file, otherwise synthesizes a goat
+  bleat as a guaranteed fallback. `GOAT_AUDIO_URL` points the call at
+  `/goat.mp3`. To use a specific recording (e.g. the orangefreesounds goat),
+  set `GOAT_SOURCE_URL` to its **direct** `.mp3` download link.
 
 ```bash
 # Demo it: goat fires 8s after a match goes quiet

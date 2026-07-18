@@ -19,6 +19,7 @@ import { MatchStore, SilenceTimer, DAY_MS } from './silenceTimer.js';
 import { voiceClientFromEnv, goatVoiceXml, goatDigitsResponseXml } from './voice.js';
 import { ProfileVault, MatchGate } from './gating.js';
 import { TalkingStageClock, WEEK_MS, defaultPlan } from './talkingStage.js';
+import { resolveGoatAudio } from './goatSound.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -145,6 +146,22 @@ app.post('/api/testcall', async (req, res) => {
   } catch (err) {
     res.status(502).json({ ok: false, to, error: String(err.message || err) });
   }
+});
+
+// --- Goat sound, served from our own domain ---
+// AT can <Play> this reliably. Proxies GOAT_SOURCE_URL if it's a real audio
+// file, else serves a synthesized goat bleat. Cached in memory for an hour.
+let _goatCache = null; // { buffer, contentType, at, src }
+app.get(['/goat.mp3', '/goat.wav'], async (_req, res) => {
+  const src = process.env.GOAT_SOURCE_URL || '';
+  const fresh = _goatCache && _goatCache.src === src && Date.now() - _goatCache.at < 3600_000;
+  if (!fresh) {
+    const audio = await resolveGoatAudio(src);
+    _goatCache = { ...audio, at: Date.now(), src };
+  }
+  res.set('Content-Type', _goatCache.contentType);
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.send(_goatCache.buffer);
 });
 
 // --- Africa's Talking Voice callback ---
