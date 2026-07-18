@@ -64,7 +64,7 @@ Conversation resumes immediately, out of sheer confusion.
   goat after 8 seconds — perfect for a live demo).
 - No AT credentials? It runs in **dry-run** mode and logs the goat calls it would
   place, so the whole feature demos with zero secrets.
-- The goat calls come from the Africa's Talking voice number **+256323200942**
+- The goat calls come from the Africa's Talking voice number **+256200600600**
   by default (override with `AT_VOICE_NUMBER`). Placing real calls still requires
   `AT_USERNAME` + `AT_API_KEY`. Set `GOAT_AUDIO_URL` to an mp3 of a screaming
   goat; otherwise the call falls back to a spoken goat. See `.env.example`.

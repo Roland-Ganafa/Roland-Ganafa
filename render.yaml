@@ -16,6 +16,6 @@ services:
       - key: AT_API_KEY
         sync: false          # you paste this in the Render dashboard (kept secret)
       - key: AT_VOICE_NUMBER
-        value: "+256323200942"
+        value: "+256200600600"
       - key: GOAT_AUDIO_URL
         sync: false          # optional: URL of an mp3 of a screaming goat

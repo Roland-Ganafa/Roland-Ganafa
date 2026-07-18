@@ -116,7 +116,7 @@ export class DryRunVoiceClient {
 
 // Our Africa's Talking Voice caller id (the number the goat calls come from).
 // A phone number, not a secret — override with AT_VOICE_NUMBER if it changes.
-export const DEFAULT_VOICE_NUMBER = '+256323200942';
+export const DEFAULT_VOICE_NUMBER = '+256200600600';
 
 /**
  * Pick a client based on the environment: real if credentials exist, else
