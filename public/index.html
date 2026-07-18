@@ -72,6 +72,33 @@
     ul.flags li { margin: 4px 0; }
     footer { text-align:center; color: var(--muted); font-size:.8rem; margin-top: 28px; }
     a { color: var(--orange); }
+
+    /* --- Chat Reference Check --- */
+    .chatwin {
+      height: 440px; max-height: 62vh; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 6px 4px; margin-top: 6px;
+    }
+    .msg {
+      max-width: 82%; padding: 10px 14px; border-radius: 16px;
+      font-size: .98rem; line-height: 1.38; white-space: pre-wrap; word-wrap: break-word;
+      animation: pop .18s ease-out;
+    }
+    @keyframes pop { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .msg.bot { align-self: flex-start; background: #1c3a52; color: var(--ink); border-bottom-left-radius: 4px; }
+    .msg.user { align-self: flex-end; background: var(--orange); color: #0b1e2d; font-weight: 600; border-bottom-right-radius: 4px; }
+    .msg.result { align-self: flex-start; background: #14304a; border: 1px solid var(--orange); font-weight: 700; }
+    .msg.result .big { font-size: 1.6rem; }
+    .typing { align-self: flex-start; background: #1c3a52; padding: 13px 16px; border-radius: 16px; border-bottom-left-radius: 4px; }
+    .typing span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin: 0 2px; animation: blink 1.2s infinite both; }
+    .typing span:nth-child(2) { animation-delay: .2s; }
+    .typing span:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+    .quick { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .qr { border: 0; border-radius: 999px; padding: 11px 22px; font-weight: 800; cursor: pointer; font-size: .95rem; }
+    .qr.yes { background: var(--green); color: #fff; }
+    .qr.no { background: var(--red); color: #fff; }
+    .qr.again { background: var(--orange); color: #0b1e2d; }
   </style>
 </head>
 <body>
@@ -85,22 +112,9 @@
 
     <div class="card">
       <h2>The Ex-Files <span class="q">Reference Check</span></h2>
-      <p class="hint">Answer honestly about <b>yourself</b> and about your <b>current crush</b>. The gap between the two is your Red Flag Index™.</p>
-      <table>
-        <thead>
-          <tr><th>Question</th><th>You</th><th>Your crush</th></tr>
-        </thead>
-        <tbody id="rows"></tbody>
-      </table>
-      <button class="go" id="run">Run my Red Flag Index →</button>
-    </div>
-
-    <div class="card result" id="result">
-      <h2>Verdict</h2>
-      <div><span class="score" id="score">–</span><span class="band" id="band"></span></div>
-      <div class="verdict" id="verdict"></div>
-      <div class="beat" id="beat"></div>
-      <ul class="flags" id="flags"></ul>
+      <p class="hint">A quick chat 💬 — answer about <b>yourself</b>, then your <b>current crush</b>. The gap between the two is your Red Flag Index™.</p>
+      <div class="chatwin" id="chat"></div>
+      <div class="quick" id="quick"></div>
     </div>
 
     <div class="card">
@@ -146,73 +160,97 @@
   </div>
 
   <script>
-    const state = { self: {}, crush: {} };
-    let QUESTIONS = [];
+    // --- Chat-style Reference Check ---
+    const chat = document.getElementById('chat');
+    const quick = document.getElementById('quick');
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const scrollChat = () => { chat.scrollTop = chat.scrollHeight; };
 
-    function toggle(who, key, val, btnYes, btnNo) {
-      state[who][key] = val;
-      btnYes.classList.toggle('on-yes', val === true);
-      btnNo.classList.toggle('on-no', val === false);
+    function bubble(text, who, cls) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + who + (cls ? ' ' + cls : '');
+      div.textContent = text;
+      chat.append(div);
+      scrollChat();
+      return div;
     }
 
-    function makeToggle(who, key) {
-      const wrap = document.createElement('div');
-      wrap.className = 'toggle';
-      const yes = document.createElement('button');
-      yes.textContent = 'Yes';
-      const no = document.createElement('button');
-      no.textContent = 'No';
-      yes.onclick = () => toggle(who, key, true, yes, no);
-      no.onclick = () => toggle(who, key, false, yes, no);
-      wrap.append(yes, no);
-      return wrap;
+    async function botSay(text, cls) {
+      const dots = document.createElement('div');
+      dots.className = 'typing';
+      dots.innerHTML = '<span></span><span></span><span></span>';
+      chat.append(dots);
+      scrollChat();
+      await sleep(Math.min(900, 350 + text.length * 12));
+      dots.remove();
+      bubble(text, 'bot', cls);
+      await sleep(150);
     }
 
-    async function load() {
-      QUESTIONS = await (await fetch('/api/questions')).json();
-      const rows = document.getElementById('rows');
-      for (const q of QUESTIONS) {
-        const tr = document.createElement('tr');
-        const td1 = document.createElement('td');
-        td1.className = 'q';
-        td1.textContent = q.text;
-        const td2 = document.createElement('td');
-        td2.append(makeToggle('self', q.key));
-        const td3 = document.createElement('td');
-        td3.append(makeToggle('crush', q.key));
-        tr.append(td1, td2, td3);
-        rows.append(tr);
-        // sensible defaults so the demo is one-click
-        state.self[q.key] = false;
-        state.crush[q.key] = false;
+    // Ask a yes/no question; resolves to true/false when the user taps.
+    async function ask(prompt) {
+      await botSay(prompt);
+      return new Promise((resolve) => {
+        quick.innerHTML = '';
+        const mk = (label, val, cls) => {
+          const b = document.createElement('button');
+          b.className = 'qr ' + cls;
+          b.textContent = label;
+          b.onclick = () => {
+            quick.innerHTML = '';
+            bubble(label, 'user');
+            resolve(val);
+          };
+          quick.append(b);
+        };
+        mk('Yes ✅', true, 'yes');
+        mk('No ❌', false, 'no');
+      });
+    }
+
+    async function runReferenceCheck() {
+      chat.innerHTML = '';
+      quick.innerHTML = '';
+      const QS = await (await fetch('/api/questions')).json();
+      const answers = { self: {}, crush: {} };
+
+      await botSay("Hey 👋 I'm Ex-Files. Before you slide into anyone's DMs, let's run a quick vibe check.");
+      await botSay('First, five quick ones about YOU. Be honest — the goat is watching. 🐐');
+      for (const q of QS) {
+        answers.self[q.key] = await ask('You — ' + q.text);
       }
-    }
 
-    document.getElementById('run').onclick = async () => {
+      await botSay('Now the fun part… your CRUSH. 👀');
+      for (const q of QS) {
+        answers.crush[q.key] = await ask('Your crush — ' + q.text);
+      }
+
+      await botSay('Crunching your Red Flag Index™… 🚩');
       const res = await (await fetch('/api/redflag', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(state),
+        body: JSON.stringify(answers),
       })).json();
 
-      document.getElementById('score').textContent = res.score;
-      const band = document.getElementById('band');
-      band.textContent = res.band;
-      band.className = 'band ' + res.band;
-      document.getElementById('verdict').textContent = res.verdict;
-      document.getElementById('beat').textContent = res.typeBeat;
-      const flags = document.getElementById('flags');
-      flags.innerHTML = '';
-      for (const f of res.flags) {
-        const li = document.createElement('li');
-        li.textContent = f;
-        flags.append(li);
+      bubble('🚩 Red Flag Index: ' + res.score + '/100 — ' + res.band, 'bot', 'result');
+      scrollChat();
+      await sleep(500);
+      await botSay(res.verdict);
+      if (res.flags.length) {
+        await botSay('Flags I spotted:\n• ' + res.flags.join('\n• '));
       }
-      document.getElementById('result').classList.add('show');
-      document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
-    };
+      await botSay(res.typeBeat);
+      await botSay('Flirting unlocked. Good luck out there 🐐');
 
-    load();
+      quick.innerHTML = '';
+      const again = document.createElement('button');
+      again.className = 'qr again';
+      again.textContent = 'Run it again 🔄';
+      again.onclick = () => runReferenceCheck();
+      quick.append(again);
+    }
+
+    runReferenceCheck();
 
     // --- Awkward Silence Timer demo ---
     let matchId = null;
