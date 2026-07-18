@@ -123,6 +123,19 @@ app.post('/api/tick', async (_req, res) => {
   res.json({ dispatched });
 });
 
+// Place a single goat call to one number on demand (phone-friendly demo).
+// In dry-run mode this just logs; with AT credentials it dials for real.
+app.post('/api/testcall', async (req, res) => {
+  const { to } = req.body || {};
+  if (!to) return res.status(400).json({ error: 'Provide a phone number as "to".' });
+  try {
+    const result = await voiceClient.call(to);
+    res.json({ ok: true, to, live: voiceClient.constructor.name !== 'DryRunVoiceClient', result });
+  } catch (err) {
+    res.status(502).json({ ok: false, to, error: String(err.message || err) });
+  }
+});
+
 // --- Africa's Talking Voice callback ---
 // AT hits this when a goat call connects; we return XML telling it to play the
 // goat. Same endpoint for both participants — everyone hears the same goat.
