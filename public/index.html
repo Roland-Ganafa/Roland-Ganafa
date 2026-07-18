@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ex-Files 💘 — Verify vibes before feelings</title>
+  <style>
+    :root {
+      --navy: #0b1e2d;
+      --navy2: #12283a;
+      --orange: #f4901e;
+      --green: #1f9d55;
+      --red: #e4322b;
+      --ink: #eaf2f8;
+      --muted: #9fb3c2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(1200px 600px at 80% -10%, #16344a 0%, var(--navy) 55%);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 24px 16px 60px;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 8px; }
+    .logo { font-size: 2.6rem; font-weight: 800; letter-spacing: -1px; }
+    .logo .love { color: var(--red); }
+    .tag { color: var(--orange); font-weight: 700; margin-top: 2px; }
+    .sub { color: var(--muted); font-size: .95rem; margin-top: 6px; }
+    .nerds { display:inline-block; margin-top:10px; font-size:.8rem; color:var(--green); font-weight:700; }
+    .card {
+      background: linear-gradient(180deg, var(--navy2), #0e2233);
+      border: 1px solid #21455f;
+      border-radius: 18px;
+      padding: 22px;
+      margin-top: 22px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.35);
+    }
+    h2 { margin: 0 0 4px; font-size: 1.15rem; }
+    h2 .q { color: var(--orange); }
+    .hint { color: var(--muted); font-size: .85rem; margin: 0 0 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 6px; text-align: left; font-size: .95rem; border-bottom: 1px solid #1c3a52; }
+    th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+    td.q { color: var(--ink); }
+    .toggle { display: inline-flex; border: 1px solid #2b526e; border-radius: 999px; overflow: hidden; }
+    .toggle button {
+      border: 0; background: transparent; color: var(--muted);
+      padding: 6px 14px; cursor: pointer; font-weight: 700; font-size: .85rem;
+    }
+    .toggle button.on-yes { background: var(--green); color: #fff; }
+    .toggle button.on-no  { background: var(--red); color: #fff; }
+    .go {
+      margin-top: 18px; width: 100%; border: 0; border-radius: 12px;
+      background: var(--orange); color: #0b1e2d; font-weight: 800; font-size: 1.05rem;
+      padding: 14px; cursor: pointer;
+    }
+    .go:hover { filter: brightness(1.05); }
+    .result { display: none; }
+    .result.show { display: block; }
+    .score { font-size: 3.4rem; font-weight: 800; line-height: 1; }
+    .band { display:inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: .8rem; margin-left: 8px; vertical-align: middle;}
+    .band.Green { background: var(--green); color:#fff; }
+    .band.Amber { background: var(--orange); color:#0b1e2d; }
+    .band.Red { background: var(--red); color:#fff; }
+    .band.Crimson { background: #7a0f14; color:#fff; }
+    .verdict { color: var(--ink); margin: 10px 0 2px; font-size: 1.05rem; }
+    .beat { color: var(--orange); font-style: italic; margin: 12px 0; }
+    ul.flags { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
+    ul.flags li { margin: 4px 0; }
+    footer { text-align:center; color: var(--muted); font-size:.8rem; margin-top: 28px; }
+    a { color: var(--orange); }
+
+    /* --- Chat Reference Check --- */
+    .chatwin {
+      height: 440px; max-height: 62vh; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 6px 4px; margin-top: 6px;
+    }
+    .msg {
+      max-width: 82%; padding: 10px 14px; border-radius: 16px;
+      font-size: .98rem; line-height: 1.38; white-space: pre-wrap; word-wrap: break-word;
+      animation: pop .18s ease-out;
+    }
+    @keyframes pop { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .msg.bot { align-self: flex-start; background: #1c3a52; color: var(--ink); border-bottom-left-radius: 4px; }
+    .msg.user { align-self: flex-end; background: var(--orange); color: #0b1e2d; font-weight: 600; border-bottom-right-radius: 4px; }
+    .msg.result { align-self: flex-start; background: #14304a; border: 1px solid var(--orange); font-weight: 700; }
+    .msg.result .big { font-size: 1.6rem; }
+    .typing { align-self: flex-start; background: #1c3a52; padding: 13px 16px; border-radius: 16px; border-bottom-left-radius: 4px; }
+    .typing span { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin: 0 2px; animation: blink 1.2s infinite both; }
+    .typing span:nth-child(2) { animation-delay: .2s; }
+    .typing span:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+    .quick { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .qr { border: 0; border-radius: 999px; padding: 11px 22px; font-weight: 800; cursor: pointer; font-size: .95rem; }
+    .qr.yes { background: var(--green); color: #fff; }
+    .qr.no { background: var(--red); color: #fff; }
+    .qr.again { background: var(--orange); color: #0b1e2d; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">Ex-<span class="love">Files</span> 💘</div>
+      <div class="tag">Verify vibes before feelings.</div>
+      <div class="sub">Reimagining Dating &amp; Social Networks — Africa's Talking Community Uganda</div>
+      <div class="nerds">#WeLoveNerds 🇺🇬</div>
+    </header>
+
+    <div class="card">
+      <h2>The Ex-Files <span class="q">Reference Check</span></h2>
+      <p class="hint">A quick chat 💬 — answer about <b>yourself</b>, then your <b>current crush</b>. The gap between the two is your Red Flag Index™.</p>
+      <div class="chatwin" id="chat"></div>
+      <div class="quick" id="quick"></div>
+    </div>
+
+    <div class="card">
+      <h2>The Awkward <span class="q">Silence Timer</span> 🐐</h2>
+      <p class="hint">Match two people. If they go quiet past the threshold, Ex-Files calls <b>both</b> of them and plays the <b>same goat scream</b> (Africa's Talking Voice). Conversation resumes out of confusion. Run the server with <code>SILENCE_MS=8000</code> to watch it fire in 8 seconds.</p>
+      <div id="silencePanel"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
+        <button class="go" id="mkMatch" style="flex:1; min-width:160px;">Create a match</button>
+        <button class="go" id="sendMsg" style="flex:1; min-width:160px; background:var(--green); color:#fff;">Send a message (reset)</button>
+        <button class="go" id="runTimer" style="flex:1; min-width:160px; background:var(--red); color:#fff;">Run silence timer now</button>
+      </div>
+      <div id="goatLog" class="beat"></div>
+      <div style="margin-top:16px; padding-top:16px; border-top:1px solid #21455f;">
+        <div style="font-weight:700; margin-bottom:8px;">📞 Call a phone with the goat now</div>
+        <div style="color:var(--muted); font-size:.85rem; margin-bottom:10px;">Enter a real mobile number in international format. If the server has Africa's Talking credentials, this places a live call. 🐐</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <input id="callNum" type="tel" placeholder="+2567XXXXXXXX" value="+2567"
+            style="flex:2; min-width:180px; padding:12px; border-radius:12px; border:1px solid #2b526e; background:#0e2233; color:var(--ink); font-size:1rem;" />
+          <button class="go" id="callBtn" style="flex:1; min-width:140px;">Call me the goat</button>
+        </div>
+        <div id="callLog" class="beat"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Photo &amp; Location <span class="q">Gating</span> 🛡️</h2>
+      <p class="hint">Safety first: <b>no photo until you both like each other</b>, and <b>location only after a mutual match AND a double opt-in</b> — and even then it's shown as an approximate area, never exact coordinates. Below, you're <b>Amara</b> looking at <b>Brian</b>.</p>
+      <div id="gateView"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
+        <button class="go gbtn" data-act="likeA" style="flex:1; min-width:120px; background:var(--green); color:#fff;">Amara likes 💚</button>
+        <button class="go gbtn" data-act="likeB" style="flex:1; min-width:120px; background:var(--green); color:#fff;">Brian likes 💚</button>
+        <button class="go gbtn" data-act="locA" style="flex:1; min-width:120px;">Amara shares location</button>
+        <button class="go gbtn" data-act="locB" style="flex:1; min-width:120px;">Brian shares location</button>
+        <button class="go gbtn" data-act="hideB" style="flex:1; min-width:120px; background:#7a5b0f; color:#fff;">Brian hides photo</button>
+        <button class="go gbtn" data-act="block" style="flex:1; min-width:120px; background:var(--red); color:#fff;">Brian blocks 🚫</button>
+        <button class="go gbtn" data-act="reset" style="flex:1; min-width:120px; background:#33546e; color:#fff;">Reset demo ↺</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>The Talking-Stage <span class="q">Clock</span> ⏳</h2>
+      <p class="hint">Ex-Files' job is to <b>end the talking stage</b>. Every match has a shelf life: at the halfway mark the app <b>auto-proposes a coffee date</b> ☕. Set a plan before the deadline or the match <b>expires</b> — no more three-week chats that go nowhere.</p>
+      <div id="stagePanel"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
+        <button class="go tsbtn" data-act="new" style="flex:1; min-width:130px; background:#33546e; color:#fff;">New match ⏳</button>
+        <button class="go tsbtn" data-act="propose" style="flex:1; min-width:130px;">Propose coffee ☕</button>
+        <button class="go tsbtn" data-act="accept" style="flex:1; min-width:130px; background:var(--green); color:#fff;">Match accepts 💚</button>
+      </div>
+      <div id="stageLog" class="beat"></div>
+    </div>
+
+    <footer>
+      Runs on any feature phone too — dial the USSD demo. Built for the Open Hackathon. 🐐
+    </footer>
+  </div>
+
+  <script>
+    // --- Chat-style Reference Check ---
+    const chat = document.getElementById('chat');
+    const quick = document.getElementById('quick');
+    const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+    const scrollChat = () => { chat.scrollTop = chat.scrollHeight; };
+
+    function bubble(text, who, cls) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + who + (cls ? ' ' + cls : '');
+      div.textContent = text;
+      chat.append(div);
+      scrollChat();
+      return div;
+    }
+
+    async function botSay(text, cls) {
+      const dots = document.createElement('div');
+      dots.className = 'typing';
+      dots.innerHTML = '<span></span><span></span><span></span>';
+      chat.append(dots);
+      scrollChat();
+      await sleep(Math.min(900, 350 + text.length * 12));
+      dots.remove();
+      bubble(text, 'bot', cls);
+      await sleep(150);
+    }
+
+    // Ask a yes/no question; resolves to true/false when the user taps.
+    async function ask(prompt) {
+      await botSay(prompt);
+      return new Promise((resolve) => {
+        quick.innerHTML = '';
+        const mk = (label, val, cls) => {
+          const b = document.createElement('button');
+          b.className = 'qr ' + cls;
+          b.textContent = label;
+          b.onclick = () => {
+            quick.innerHTML = '';
+            bubble(label, 'user');
+            resolve(val);
+          };
+          quick.append(b);
+        };
+        mk('Yes ✅', true, 'yes');
+        mk('No ❌', false, 'no');
+      });
+    }
+
+    async function runReferenceCheck() {
+      chat.innerHTML = '';
+      quick.innerHTML = '';
+      const QS = await (await fetch('/api/questions')).json();
+      const answers = { self: {}, crush: {} };
+
+      await botSay("Hey 👋 I'm Ex-Files. Before you slide into anyone's DMs, let's run a quick vibe check.");
+      await botSay('First, five quick ones about YOU. Be honest — the goat is watching. 🐐');
+      for (const q of QS) {
+        answers.self[q.key] = await ask('You — ' + q.text);
+      }
+
+      await botSay('Now the fun part… your CRUSH. 👀');
+      for (const q of QS) {
+        answers.crush[q.key] = await ask('Your crush — ' + q.text);
+      }
+
+      await botSay('Crunching your Red Flag Index™… 🚩');
+      const res = await (await fetch('/api/redflag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(answers),
+      })).json();
+
+      bubble('🚩 Red Flag Index: ' + res.score + '/100 — ' + res.band, 'bot', 'result');
+      scrollChat();
+      await sleep(500);
+      await botSay(res.verdict);
+      if (res.flags.length) {
+        await botSay('Flags I spotted:\n• ' + res.flags.join('\n• '));
+      }
+      await botSay(res.typeBeat);
+      await botSay('Flirting unlocked. Good luck out there 🐐');
+
+      quick.innerHTML = '';
+      const again = document.createElement('button');
+      again.className = 'qr again';
+      again.textContent = 'Run it again 🔄';
+      again.onclick = () => runReferenceCheck();
+      quick.append(again);
+    }
+
+    runReferenceCheck();
+
+    // --- Awkward Silence Timer demo ---
+    let matchId = null;
+    const panel = document.getElementById('silencePanel');
+    const goatLog = document.getElementById('goatLog');
+
+    async function refreshSilence() {
+      const data = await (await fetch('/api/matches')).json();
+      const m = data.matches.find((x) => x.id === matchId) || data.matches[data.matches.length - 1];
+      if (!m) { panel.innerHTML = '<span style="color:var(--muted)">No match yet. Create one above.</span>'; return; }
+      matchId = m.id;
+      const secs = (m.silentMs / 1000).toFixed(1);
+      const threshold = (data.silenceMs / 1000).toFixed(0);
+      const fired = m.goatSentAt ? '🐐 GOAT DISPATCHED to both phones' : (m.silentEnough ? '⏳ silent enough — run the timer' : 'watching…');
+      panel.innerHTML =
+        '<div style="font-size:1.05rem">Match <b>' + m.id + '</b>: ' + m.participants.join(' 💘 ') + '</div>' +
+        '<div style="margin-top:6px;color:var(--muted)">Silent for <b style="color:var(--orange)">' + secs + 's</b> / ' + threshold + 's threshold — ' + fired + '</div>' +
+        '<div style="margin-top:4px;color:var(--muted)">Goat calls placed so far: <b>' + (data.goatCallsPlaced ?? 0) + '</b></div>';
+    }
+
+    document.getElementById('mkMatch').onclick = async () => {
+      const m = await (await fetch('/api/match', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneA: '+256700000001', phoneB: '+256700000002' }),
+      })).json();
+      matchId = m.id;
+      goatLog.textContent = '';
+      refreshSilence();
+    };
+
+    document.getElementById('sendMsg').onclick = async () => {
+      if (!matchId) return;
+      await fetch('/api/message', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId }),
+      });
+      goatLog.textContent = '💬 Message sent — silence clock reset, goat re-armed.';
+      refreshSilence();
+    };
+
+    document.getElementById('runTimer').onclick = async () => {
+      const res = await (await fetch('/api/tick', { method: 'POST' })).json();
+      if (res.dispatched.length) {
+        const calls = res.dispatched.flatMap((d) => d.results.map((r) => r.to));
+        goatLog.textContent = '🐐 Goat call placed to: ' + calls.join(', ') + '. They will call you back now.';
+      } else {
+        goatLog.textContent = 'No goat this round — not silent long enough yet.';
+      }
+      refreshSilence();
+    };
+
+    setInterval(() => { if (matchId) refreshSilence(); }, 1000);
+
+    // --- Call a phone with the goat ---
+    const callLog = document.getElementById('callLog');
+    document.getElementById('callBtn').onclick = async () => {
+      const to = document.getElementById('callNum').value.trim();
+      if (!/^\+\d{7,15}$/.test(to)) { callLog.textContent = '⚠️ Enter a valid number like +2567XXXXXXXX'; return; }
+      callLog.textContent = '📞 Placing the goat call to ' + to + '…';
+      try {
+        const res = await fetch('/api/testcall', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ to }),
+        });
+        const data = await res.json();
+        if (data.ok) {
+          callLog.textContent = data.live
+            ? '🐐 Live call placed to ' + to + '! Your phone should ring shortly.'
+            : '🐐 (dry-run) Would call ' + to + '. Add AT credentials to dial for real.';
+        } else {
+          callLog.textContent = '❌ ' + (data.error || 'Call failed.');
+        }
+      } catch (e) {
+        callLog.textContent = '❌ ' + e.message;
+      }
+    };
+
+    // --- Photo & Location Gating demo ---
+    const AMARA = '+256710000001';
+    const BRIAN = '+256710000002';
+    let gateMatchId = null;
+    const gateView = document.getElementById('gateView');
+
+    async function api(path, body) {
+      return (await fetch(path, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })).json();
+    }
+
+    async function setupGateDemo() {
+      await api('/api/profile', { phone: AMARA, displayName: 'Amara N', photoUrl: 'https://placehold.co/80x80/1f9d55/fff?text=A', area: 'Ntinda, Kampala' });
+      await api('/api/profile', { phone: BRIAN, displayName: 'Brian K', photoUrl: 'https://placehold.co/80x80/f4901e/000?text=B', lat: 0.34765, lng: 32.61234 });
+      const m = await api('/api/match', { phoneA: AMARA, phoneB: BRIAN });
+      gateMatchId = m.id;
+      renderGate();
+    }
+
+    async function renderGate() {
+      if (!gateMatchId) return;
+      const v = await (await fetch('/api/view?matchId=' + gateMatchId + '&viewer=' + encodeURIComponent(AMARA))).json();
+      const photoBox = v.photo.visible
+        ? '<img src="' + v.photo.url + '" alt="photo" style="width:64px;height:64px;border-radius:12px;vertical-align:middle"/>'
+        : '<span style="display:inline-block;width:64px;height:64px;border-radius:12px;background:#22201c;text-align:center;line-height:64px;font-size:1.6rem;vertical-align:middle">🔒</span>';
+      const loc = v.location.visible
+        ? (v.location.value.area || ('~(' + v.location.value.approxLat + ', ' + v.location.value.approxLng + ') ' + v.location.value.precision))
+        : '🔒 hidden';
+      gateView.innerHTML =
+        '<div style="display:flex;align-items:center;gap:14px">' + photoBox +
+        '<div><div style="font-size:1.15rem;font-weight:700">' + v.name + (v.mutual ? ' 💘' : '') + '</div>' +
+        '<div style="color:var(--muted);font-size:.85rem;margin-top:2px">' + v.photo.reason + '</div></div></div>' +
+        '<div style="margin-top:12px;color:var(--muted)">📍 Location: <b style="color:var(--orange)">' + loc + '</b><br><span style="font-size:.85rem">' + v.location.reason + '</span></div>';
+    }
+
+    document.querySelectorAll('.gbtn').forEach((btn) => {
+      btn.onclick = async () => {
+        const act = btn.dataset.act;
+        if (act === 'reset') { await setupGateDemo(); return; }
+        if (!gateMatchId) await setupGateDemo();
+        if (act === 'likeA') await api('/api/like', { matchId: gateMatchId, phone: AMARA });
+        if (act === 'likeB') await api('/api/like', { matchId: gateMatchId, phone: BRIAN });
+        if (act === 'locA') await api('/api/consent/location', { matchId: gateMatchId, phone: AMARA });
+        if (act === 'locB') await api('/api/consent/location', { matchId: gateMatchId, phone: BRIAN });
+        if (act === 'hideB') await api('/api/consent/photo', { matchId: gateMatchId, phone: BRIAN, shared: false });
+        if (act === 'block') await api('/api/block', { matchId: gateMatchId, phone: BRIAN });
+        renderGate();
+      };
+    });
+
+    setupGateDemo();
+
+    // --- Talking-Stage Clock demo ---
+    const TA = '+256720000001';
+    const TB = '+256720000002';
+    let stageMatchId = null;
+    const stagePanel = document.getElementById('stagePanel');
+    const stageLog = document.getElementById('stageLog');
+    const PHASE = {
+      talking: { label: '💬 Talking stage', color: 'var(--muted)' },
+      nudge: { label: '☕ App proposed a coffee date', color: 'var(--orange)' },
+      planned: { label: '✅ Date set — go meet!', color: 'var(--green)' },
+      expired: { label: '💀 Match expired', color: 'var(--red)' },
+    };
+
+    async function newStageMatch() {
+      stageLog.textContent = '';
+      const m = await api('/api/match', { phoneA: TA, phoneB: TB });
+      stageMatchId = m.id;
+      renderStage();
+    }
+
+    async function renderStage() {
+      const data = await (await fetch('/api/stage')).json();
+      const m = data.matches.find((x) => x.id === stageMatchId) || data.matches[data.matches.length - 1];
+      if (!m) { stagePanel.innerHTML = '<span style="color:var(--muted)">Tap “New match” to start a clock.</span>'; return; }
+      stageMatchId = m.id;
+      const info = PHASE[m.phase] || PHASE.talking;
+      const pct = Math.min(100, Math.round((m.elapsedMs / data.stageMs) * 100));
+      const left = Math.max(0, Math.round(m.timeLeftMs / 1000));
+      const nudgePct = Math.round((data.nudgeAt / data.stageMs) * 100);
+      const done = m.phase === 'planned' || m.phase === 'expired';
+      const barColor = m.phase === 'expired' ? 'var(--red)' : (m.phase === 'planned' ? 'var(--green)' : 'var(--orange)');
+      const plan = m.proposal
+        ? '☕ Plan: ' + m.proposal.plan.activity + ' (' + m.proposal.plan.duration + ') ' + m.proposal.plan.when +
+          ' — proposed by ' + (m.proposal.by === 'system' ? 'Ex-Files' : 'you') +
+          '. Accepted: ' + m.acceptedBy.length + '/2'
+        : 'No plan yet. The app will step in at the halfway mark.';
+      stagePanel.innerHTML =
+        '<div style="font-weight:700;color:' + info.color + '">' + info.label + '</div>' +
+        '<div style="margin-top:8px;position:relative;height:12px;border-radius:999px;background:#0e2233;overflow:hidden">' +
+          '<div style="position:absolute;left:' + nudgePct + '%;top:0;bottom:0;width:2px;background:#ffffff55"></div>' +
+          '<div style="height:100%;width:' + pct + '%;background:' + barColor + ';transition:width .5s"></div>' +
+        '</div>' +
+        '<div style="margin-top:6px;color:var(--muted);font-size:.85rem">' + (done ? '' : left + 's until the match expires · the white line is when the app auto-proposes') + '</div>' +
+        '<div style="margin-top:10px;color:var(--muted)">' + plan + '</div>';
+    }
+
+    document.querySelectorAll('.tsbtn').forEach((btn) => {
+      btn.onclick = async () => {
+        const act = btn.dataset.act;
+        if (act === 'new') { await newStageMatch(); return; }
+        if (!stageMatchId) await newStageMatch();
+        if (act === 'propose') { await api('/api/propose', { matchId: stageMatchId, by: TA }); stageLog.textContent = '☕ You proposed a coffee date.'; }
+        if (act === 'accept') {
+          const r = await api('/api/accept', { matchId: stageMatchId, phone: TB });
+          stageLog.textContent = r.status === 'planned' ? '✅ Both said yes — the date is set!' : '💚 Your match accepted. Waiting on the other yes…';
+        }
+        renderStage();
+      };
+    });
+
+    // Drive the clock live: advance + re-render every second.
+    newStageMatch();
+    setInterval(async () => {
+      if (!stageMatchId) return;
+      await fetch('/api/stage/tick', { method: 'POST' });
+      renderStage();
+    }, 1000);
+  </script>
+</body>
+</html>

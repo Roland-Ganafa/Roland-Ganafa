@@ -1,0 +1,221 @@
+# Ex-Files 💘
+
+**The dating app that verifies vibes before feelings.**
+
+Built for the **Africa's Talking Community Uganda — Open Hackathon**
+_"Reimagining Dating & Social Networks through Technology"_ · Kampala · Jul 18, 2026 · `#WeLoveNerds` 🇺🇬
+
+---
+
+## The pitch
+
+Modern dating is two strangers lying about their gym schedule until one of them
+cries in a Bolt. Ex-Files fixes this with **technology** and a **light,
+consensual amount of emotional damage.**
+
+You can't send a first message. You first pass the **Ex-Files Reference Check**:
+answer five questions about **yourself**, then the same five about your **current
+crush**. The gap between the two is where the truth lives — and it becomes
+your **Red Flag Index™**.
+
+The whole thing runs over **USSD** (`*256#`-style), so it works on any feature
+phone with no data — which is exactly what makes it inclusive. Africa's Talking
+is literally hosting the hackathon, so the SDK is right there. 🐐
+
+## Why it fits the brief
+
+The flyer asks for solutions that help people *connect, build relationships, and
+engage meaningfully while ensuring safety, privacy, trust, and inclusivity.*
+
+| Rubric item | How Ex-Files scores |
+|---|---|
+| **Connect / relationships** | Compatibility-first: no chat until both sides pass the check |
+| **Safety** | No photos or location until a mutual, verified match |
+| **Privacy** | USSD flow stores answers, not identities; nothing shared without consent |
+| **Trust** | The Reference Check surfaces honesty gaps up front |
+| **Inclusivity** | Full experience on feature phones via USSD — no smartphone or data required |
+
+## What's in the box
+
+- **`src/matcher.js`** — the Red Flag Index, the Vibe Score, and the Type Beat
+  Detector. Pure functions, fully tested.
+- **`src/ussd.js`** — the Africa's Talking USSD state machine (feature-phone flow).
+- **`src/silenceTimer.js`** — the Awkward Silence Timer: watches every match and
+  fires the goat after 24h of silence. Injectable clock + voice client.
+- **`src/voice.js`** — Africa's Talking Voice integration: places the outbound
+  goat call and builds the callback XML. Dry-run client when there are no
+  credentials.
+- **`src/gating.js`** — photo & location gating: a private `ProfileVault` and a
+  `MatchGate` that reveals nothing until a mutual match (photo) or a mutual
+  match plus a double opt-in (location, always coarse).
+- **`src/server.js`** — Express server: USSD webhook + JSON APIs + Voice callback
+  + web demo.
+- **`public/index.html`** — a styled web prototype (Red Flag Index + a live
+  Awkward Silence Timer demo) for the stage.
+
+## The Awkward Silence Timer 🐐
+
+Every match carries a `lastActivityAt`. If two matched people go quiet longer
+than the threshold (24h in production), the timer places an **Africa's Talking
+Voice** call to **both** of them that plays the **same goat scream**.
+Conversation resumes immediately, out of sheer confusion.
+
+- Threshold is configurable with `SILENCE_MS` (e.g. `SILENCE_MS=8000` fires the
+  goat after 8 seconds — perfect for a live demo).
+- No AT credentials? It runs in **dry-run** mode and logs the goat calls it would
+  place, so the whole feature demos with zero secrets.
+- The goat calls come from the Africa's Talking voice number **+256200600600**
+  by default (override with `AT_VOICE_NUMBER`). Placing real calls still requires
+  `AT_USERNAME` + `AT_API_KEY`. Set `GOAT_AUDIO_URL` to an mp3 of a screaming
+  goat; otherwise the call falls back to a spoken goat. See `.env.example`.
+- The `/voice` callback is a proper interactive IVR built on the documented
+  [AT Voice call actions](https://developers.africastalking.com/docs/voice/actions/call_actions):
+  it asks the match out inside a **`GetDigits`** menu — *"Can we meet up and
+  have a coffee sometime? Press 1 if yes, press 2 for maybe later."* AT posts
+  the pressed key back to the same `/voice` URL, which replies (1 → set up the
+  coffee, 2 → maybe another time); the call-ended ping (`isActive=0`) is
+  acknowledged with an empty body.
+- A goat bleat plays as intro flair. The app serves it from its own domain at
+  **`/goat.mp3`** (so AT can always `<Play>` valid audio): it proxies
+  `GOAT_SOURCE_URL` if that's a real audio file, otherwise synthesizes a goat
+  bleat as a guaranteed fallback. `GOAT_AUDIO_URL` points the call at
+  `/goat.mp3`. To use a specific recording (e.g. the orangefreesounds goat),
+  set `GOAT_SOURCE_URL` to its **direct** `.mp3` download link.
+
+```bash
+# Demo it: goat fires 8s after a match goes quiet
+SILENCE_MS=8000 npm start
+
+curl -s -X POST localhost:3000/api/match   -H 'Content-Type: application/json' \
+  -d '{"phoneA":"+256700000001","phoneB":"+256700000002"}'
+# ...wait 8s, then let the timer scan (or hit it on demand):
+curl -s -X POST localhost:3000/api/tick
+# -> goat call dispatched to BOTH numbers 🐐
+
+# Point AT's Voice callback at POST /voice to hear the goat XML that plays.
+curl -s -X POST localhost:3000/voice
+```
+
+Endpoints: `POST /api/match`, `POST /api/message` (resets the clock, re-arms the
+goat), `GET /api/matches` (inspect silence state), `POST /api/tick` (scan now),
+`POST /voice` (AT Voice callback).
+
+## The Talking-Stage Clock ⏳ (flagship)
+
+Every other app is built to keep you texting forever. Ex-Files does the
+opposite — its job is to **end the talking stage** before boredom does.
+
+Every match gets a shelf life (`TALKING_STAGE_MS`, a week in production):
+
+- **talking** — the early phase, right after matching.
+- **nudge** — at the halfway mark, if nobody has made a plan, the app
+  **auto-proposes a tiny coffee date** (20 minutes, this week). Momentum, forced.
+- **planned** — both people accepted a plan. Success, the clock stops. Go meet.
+- **expired** — the deadline passed with no plan, so the match gently dies
+  instead of dragging on for three weeks of "wyd".
+
+This ties the whole app together: the auto-proposal is delivered by the same
+**coffee voice call** and surfaced in the **chat**, and going quiet still trips
+the **Silence Timer**. The engine is `src/talkingStage.js` (injectable clock,
+fully tested).
+
+```bash
+# Demo it: matches expire in 60s, app auto-proposes at 30s
+TALKING_STAGE_MS=60000 npm start
+
+curl -s -X POST localhost:3000/api/match -H 'Content-Type: application/json' \
+  -d '{"phoneA":"+256700000001","phoneB":"+256700000002"}'
+# ...wait past 30s, then advance the clock:
+curl -s -X POST localhost:3000/api/stage/tick   # app auto-proposes coffee
+curl -s -X POST localhost:3000/api/accept -H 'Content-Type: application/json' -d '{"matchId":"m1","phone":"+256700000001"}'
+curl -s -X POST localhost:3000/api/accept -H 'Content-Type: application/json' -d '{"matchId":"m1","phone":"+256700000002"}'
+curl -s localhost:3000/api/stage   # -> phase: planned 🎉
+```
+
+Endpoints: `GET /api/stage` (lifecycle of every match), `POST /api/propose`,
+`POST /api/accept`, `POST /api/stage/tick` (advance the clock now).
+
+## Photo & Location Gating 🛡️
+
+The safety / privacy / trust layer. Nothing about a person is revealed until
+consent is mutual:
+
+- **Photos** stay hidden until **both** people like each other (a mutual match).
+  Names are masked until then too. A matched user can still re-hide their photo.
+- **Location** is stricter: even after a mutual match it stays hidden until
+  **both** people explicitly opt in — a double consent. And it is **never
+  exact** — only a coarse area (an `area` label, or coordinates rounded to
+  ~1km). Raw coordinates never leave the vault.
+- **Blocking** instantly hides everything, both directions, and breaks the match.
+
+Private data lives in a `ProfileVault`; a `MatchGate` derives what each viewer
+may see. The gated view is the single source of truth for the UI.
+
+```bash
+npm start
+# Store private profiles (photo + location live only in the vault):
+curl -s -X POST localhost:3000/api/profile -H 'Content-Type: application/json' \
+  -d '{"phone":"+256700000001","displayName":"Amara N","photoUrl":"...","area":"Ntinda, Kampala"}'
+curl -s -X POST localhost:3000/api/profile -H 'Content-Type: application/json' \
+  -d '{"phone":"+256700000002","displayName":"Brian K","photoUrl":"...","lat":0.34765,"lng":32.61234}'
+
+curl -s -X POST localhost:3000/api/match -H 'Content-Type: application/json' \
+  -d '{"phoneA":"+256700000001","phoneB":"+256700000002"}'
+
+# Before a mutual like, the view is fully gated:
+curl -s 'localhost:3000/api/view?matchId=m1&viewer=%2B256700000001'
+
+# Both like -> photo unlocks; both opt in to location -> coarse area only.
+curl -s -X POST localhost:3000/api/like -H 'Content-Type: application/json' -d '{"matchId":"m1","phone":"+256700000001"}'
+curl -s -X POST localhost:3000/api/like -H 'Content-Type: application/json' -d '{"matchId":"m1","phone":"+256700000002"}'
+curl -s -X POST localhost:3000/api/consent/location -H 'Content-Type: application/json' -d '{"matchId":"m1","phone":"+256700000001"}'
+curl -s -X POST localhost:3000/api/consent/location -H 'Content-Type: application/json' -d '{"matchId":"m1","phone":"+256700000002"}'
+```
+
+Endpoints: `POST /api/profile`, `POST /api/like`, `POST /api/consent/location`,
+`POST /api/consent/photo`, `POST /api/block`, `GET /api/view`.
+
+## Run it
+
+```bash
+npm install
+npm start
+# → http://localhost:3000  (web demo)
+```
+
+### Try the USSD flow locally
+
+Africa's Talking posts form-encoded `sessionId`, `phoneNumber`, `serviceCode`,
+and `text`. Simulate a full session (menu → 10 answers) with curl:
+
+```bash
+# Main menu
+curl -s -X POST localhost:3000/ussd -d 'text='
+
+# Pick 1 (Red Flag Index), then answer the 10 Yes/No questions.
+# Here: 1 (menu), then five "No" about you, five "No" about your crush.
+curl -s -X POST localhost:3000/ussd -d 'text=1*2*2*2*2*2*2*2*2*2*2'
+```
+
+To connect the real thing: point your Africa's Talking USSD callback at
+`https://<your-host>/ussd`.
+
+### Tests
+
+```bash
+npm test
+```
+
+## The features we pitched (roadmap)
+
+- 🕵️ **Ex-Files Reference Check** — ✅ built (USSD + web)
+- 📟 **USSD Romance for the People** — ✅ built
+- 🤖 **Type Beat Detector** ("you say ambitious, you mean unavailable") — ✅ built
+- ⏳ **Awkward Silence Timer** — same goat voice call to both users after 24h of
+  silence (Africa's Talking Voice API) — ✅ built (with dry-run + web demo)
+- 🛡️ **Photo/location gating** — no photo until a mutual match; coarse location
+  only after a double opt-in; blocking clears everything — ✅ built (with web demo)
+
+## License
+
+MIT. Go build the future of connection. The goat believes in you. 🐐

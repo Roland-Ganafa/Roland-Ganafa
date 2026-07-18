@@ -1,0 +1,25 @@
+# One-tap deploy to Render (free). This gives Ex-Files a public URL with open
+# internet, so it can actually reach Africa's Talking and place the goat calls.
+#
+# Secrets (API key) are entered in the Render dashboard, never in this repo.
+services:
+  - type: web
+    name: ex-files
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: AT_USERNAME
+        value: maxmassv
+      - key: AT_API_KEY
+        sync: false          # you paste this in the Render dashboard (kept secret)
+      - key: AT_VOICE_NUMBER
+        value: "+256200600600"
+      - key: GOAT_AUDIO_URL
+        value: "https://ex-files.onrender.com/goat.mp3"   # goat sound, served by this app
+      - key: GOAT_SOURCE_URL
+        sync: false          # optional: a DIRECT .mp3 link to proxy (else a synth bleat)
+      - key: TALKING_STAGE_MS
+        value: "60000"       # demo: matches expire in 60s (prod would be ~7 days)

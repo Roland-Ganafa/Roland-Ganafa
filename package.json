@@ -1,0 +1,27 @@
+{
+  "name": "ex-files",
+  "version": "1.0.0",
+  "description": "The dating app that verifies vibes before feelings. Built for the Africa's Talking Community Uganda Open Hackathon.",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test"
+  },
+  "keywords": [
+    "hackathon",
+    "africastalking",
+    "ussd",
+    "dating",
+    "uganda"
+  ],
+  "author": "Roland Ganafa",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.12.0"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
