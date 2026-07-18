@@ -68,6 +68,12 @@ Conversation resumes immediately, out of sheer confusion.
   by default (override with `AT_VOICE_NUMBER`). Placing real calls still requires
   `AT_USERNAME` + `AT_API_KEY`. Set `GOAT_AUDIO_URL` to an mp3 of a screaming
   goat; otherwise the call falls back to a spoken goat. See `.env.example`.
+- The `/voice` callback is a proper interactive IVR built on the documented
+  [AT Voice call actions](https://developers.africastalking.com/docs/voice/actions/call_actions):
+  it plays the goat inside a **`GetDigits`** menu — *press 1 to text your match,
+  2 to hang up in shame*. AT posts the pressed key back to the same `/voice`
+  URL, which replies with the follow-up action; the call-ended ping (`isActive=0`)
+  is acknowledged with an empty body.
 
 ```bash
 # Demo it: goat fires 8s after a match goes quiet

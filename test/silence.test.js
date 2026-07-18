@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { MatchStore, SilenceTimer, DAY_MS } from '../src/silenceTimer.js';
-import { goatVoiceXml, DryRunVoiceClient } from '../src/voice.js';
+import { goatVoiceXml, goatDigitsResponseXml, DryRunVoiceClient } from '../src/voice.js';
 
 test('match store: creating a match starts the silence clock', () => {
   const store = new MatchStore();
@@ -76,4 +76,29 @@ test('goat XML: escapes ampersands in the audio url', () => {
   const xml = goatVoiceXml('https://x.io/g.mp3?a=1&b=2');
   assert.match(xml, /a=1&amp;b=2/);
   assert.doesNotMatch(xml, /a=1&b=2/);
+});
+
+test('goat XML: wraps the prompt in a GetDigits menu (AT call action)', () => {
+  const xml = goatVoiceXml();
+  assert.match(xml, /<Response>/);
+  assert.match(xml, /<GetDigits[^>]*numDigits="1"[^>]*>/);
+  assert.match(xml, /Press 1 to text your match/);
+  assert.match(xml, /<\/GetDigits>/);
+});
+
+test('goat digits response: 1 nudges the match', () => {
+  const xml = goatDigitsResponseXml('1');
+  assert.match(xml, /nudged your match/);
+  assert.doesNotMatch(xml, /disappointed/);
+});
+
+test('goat digits response: 2 shames with a goat', () => {
+  const xml = goatDigitsResponseXml('2');
+  assert.match(xml, /disappointed/);
+  assert.match(xml, /Maaaa/);
+});
+
+test('goat digits response: anything else is a confused goat', () => {
+  const xml = goatDigitsResponseXml('9');
+  assert.match(xml, /confused/);
 });

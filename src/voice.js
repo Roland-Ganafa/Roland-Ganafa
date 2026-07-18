@@ -14,24 +14,53 @@
 
 /**
  * Build the AT Voice XML played when a goat call connects.
- * If GOAT_AUDIO_URL is set we <Play> it; otherwise we <Say> a goat scream so
- * the demo still works with zero assets.
  *
- * @param {string} [goatAudioUrl]
+ * Uses the documented call actions: a <GetDigits> block wraps the prompt
+ * (<Say> + the goat via <Play> or a spoken fallback) so the callee can press a
+ * key. With no `callbackUrl` on <GetDigits>, Africa's Talking submits the
+ * pressed digit back to the SAME voice callback URL — which we handle with
+ * goatDigitsResponseXml. If they press nothing, the trailing <Say> plays.
+ *
+ * @param {string} [goatAudioUrl] optional mp3 of a screaming goat
  * @returns {string} XML
  */
 export function goatVoiceXml(goatAudioUrl) {
-  const middle = goatAudioUrl
-    ? `  <Play url="${escapeXml(goatAudioUrl)}"/>`
-    : `  <Say voice="man">Maaaaaaaaaaaaaa. Maaaaaa.</Say>`;
+  const goat = goatAudioUrl
+    ? `    <Play url="${escapeXml(goatAudioUrl)}"/>`
+    : `    <Say voice="man">Maaaaaaaaaaaaaa. Maaaaaa.</Say>`;
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<Response>',
-    '  <Say>Hello. This is an automated wellness check from Ex-Files.</Say>',
-    middle,
-    '  <Say>That was a goat. You have been silent for 24 hours. Please say something to your match.</Say>',
+    '  <GetDigits timeout="20" numDigits="1" finishOnKey="#">',
+    '    <Say>Hello. This is an automated wellness check from Ex-Files.</Say>',
+    goat,
+    '    <Say>That was a goat. You have been silent for 24 hours. Press 1 to text your match right now, or press 2 to hang up in shame.</Say>',
+    '  </GetDigits>',
+    '  <Say>We did not catch that. The goat will call again. Goodbye.</Say>',
     '</Response>',
   ].join('\n');
+}
+
+/**
+ * Follow-up XML after the callee presses a key. Africa's Talking POSTs the
+ * pressed key as `dtmfDigits` to the voice callback; we branch on it.
+ *
+ * @param {string} digits the dtmfDigits value from AT
+ * @returns {string} XML
+ */
+export function goatDigitsResponseXml(digits) {
+  let lines;
+  if (digits === '1') {
+    lines = ['  <Say>Great. We have nudged your match. Do not blow it. Goodbye.</Say>'];
+  } else if (digits === '2') {
+    lines = [
+      '  <Say voice="man">Maaaa.</Say>',
+      '  <Say>The goat is disappointed in you. Goodbye.</Say>',
+    ];
+  } else {
+    lines = ['  <Say>That was not 1 or 2. The goat is confused. Goodbye.</Say>'];
+  }
+  return ['<?xml version="1.0" encoding="UTF-8"?>', '<Response>', ...lines, '</Response>'].join('\n');
 }
 
 function escapeXml(s) {

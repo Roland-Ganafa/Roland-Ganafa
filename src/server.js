@@ -16,7 +16,7 @@ import path from 'node:path';
 import { handleUssd } from './ussd.js';
 import { redFlagIndex, vibeScore, typeBeat, REFERENCE_QUESTIONS } from './matcher.js';
 import { MatchStore, SilenceTimer, DAY_MS } from './silenceTimer.js';
-import { voiceClientFromEnv, goatVoiceXml } from './voice.js';
+import { voiceClientFromEnv, goatVoiceXml, goatDigitsResponseXml } from './voice.js';
 import { ProfileVault, MatchGate } from './gating.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -139,10 +139,22 @@ app.post('/api/testcall', async (req, res) => {
 });
 
 // --- Africa's Talking Voice callback ---
-// AT hits this when a goat call connects; we return XML telling it to play the
-// goat. Same endpoint for both participants — everyone hears the same goat.
-app.post('/voice', (_req, res) => {
+// AT hits this when a goat call connects. The flow (all on this one URL):
+//   1. First request (isActive=1, no digits) -> play the goat + GetDigits menu.
+//   2. Callee presses a key -> AT re-POSTs here with dtmfDigits -> respond.
+//   3. Call ends -> AT POSTs isActive=0 -> we just acknowledge (empty body).
+app.post('/voice', (req, res) => {
   res.set('Content-Type', 'application/xml');
+  const body = req.body || {};
+  // Call finished notification: no XML expected, just 200 OK.
+  if (String(body.isActive) === '0') {
+    return res.send('');
+  }
+  // The callee pressed a key: respond to their choice.
+  if (body.dtmfDigits) {
+    return res.send(goatDigitsResponseXml(String(body.dtmfDigits)));
+  }
+  // Fresh connect: play the goat and offer the menu.
   res.send(goatVoiceXml(GOAT_AUDIO_URL));
 });
 
