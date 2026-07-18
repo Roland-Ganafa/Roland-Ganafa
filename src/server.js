@@ -20,6 +20,15 @@ import { voiceClientFromEnv, goatVoiceXml } from './voice.js';
 import { ProfileVault, MatchGate } from './gating.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Load a local .env if present (Node 20.12+ built-in — no dependency).
+// .env holds secrets (AT_API_KEY etc.) and is git-ignored; never commit it.
+try {
+  process.loadEnvFile(path.join(__dirname, '..', '.env'));
+} catch {
+  // No .env file — that's fine, we fall back to dry-run mode.
+}
+
 const app = express();
 
 app.use(express.urlencoded({ extended: false })); // AT posts form-encoded
