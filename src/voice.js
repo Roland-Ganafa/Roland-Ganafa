@@ -12,26 +12,36 @@
 // instead of placing them, so the whole feature runs (and is testable) with no
 // credentials — which is also exactly what you want on a hackathon stage.
 
+// A <Play> only works if the URL is a real, directly-downloadable audio file.
+// A non-audio URL (an HTML page, a redirect) makes Africa's Talking's media
+// server fail and DROP the call — so we only emit <Play> for a clear audio
+// extension, and otherwise fall back to a spoken goat that always works.
+function isDirectAudio(url) {
+  return typeof url === 'string' && /\.(mp3|wav|ogg|m4a)(\?.*)?$/i.test(url.trim());
+}
+
 /**
  * Build the AT Voice XML played when a goat call connects.
  *
  * Uses the documented call actions: a <GetDigits> block wraps the prompt
  * (<Say> + the goat via <Play> or a spoken fallback) so the callee can press a
- * key. With no `callbackUrl` on <GetDigits>, Africa's Talking submits the
- * pressed digit back to the SAME voice callback URL — which we handle with
- * goatDigitsResponseXml. If they press nothing, the trailing <Say> plays.
+ * key. Africa's Talking submits the pressed digit to `callbackUrl` (or the
+ * number's default callback if omitted) — handled by goatDigitsResponseXml.
+ * If they press nothing, the trailing <Say> plays.
  *
- * @param {string} [goatAudioUrl] optional mp3 of a screaming goat
+ * @param {string} [goatAudioUrl] optional DIRECT mp3/wav of a screaming goat
+ * @param {string} [callbackUrl] absolute URL AT should post the pressed key to
  * @returns {string} XML
  */
-export function goatVoiceXml(goatAudioUrl) {
-  const goat = goatAudioUrl
+export function goatVoiceXml(goatAudioUrl, callbackUrl) {
+  const goat = isDirectAudio(goatAudioUrl)
     ? `    <Play url="${escapeXml(goatAudioUrl)}"/>`
     : `    <Say voice="man">Maaaaaaaaaaaaaa. Maaaaaa.</Say>`;
+  const cb = callbackUrl ? ` callbackUrl="${escapeXml(callbackUrl)}"` : '';
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<Response>',
-    '  <GetDigits timeout="20" numDigits="1" finishOnKey="#">',
+    `  <GetDigits timeout="20" numDigits="1" finishOnKey="#"${cb}>`,
     '    <Say>Hello. This is an automated wellness check from Ex-Files.</Say>',
     goat,
     '    <Say>That was a goat. You have been silent for 24 hours. Press 1 to text your match right now, or press 2 to hang up in shame.</Say>',

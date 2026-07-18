@@ -154,8 +154,11 @@ app.post('/voice', (req, res) => {
   if (body.dtmfDigits) {
     return res.send(goatDigitsResponseXml(String(body.dtmfDigits)));
   }
-  // Fresh connect: play the goat and offer the menu.
-  res.send(goatVoiceXml(GOAT_AUDIO_URL));
+  // Fresh connect: play the goat and offer the menu. Tell AT to post the
+  // pressed key back to this same absolute URL.
+  const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+  const callbackUrl = req.headers.host ? `${proto}://${req.headers.host}/voice` : undefined;
+  res.send(goatVoiceXml(GOAT_AUDIO_URL, callbackUrl));
 });
 
 // --- Photo & location gating APIs ---
