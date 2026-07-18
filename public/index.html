@@ -154,6 +154,18 @@
       </div>
     </div>
 
+    <div class="card">
+      <h2>The Talking-Stage <span class="q">Clock</span> ⏳</h2>
+      <p class="hint">Ex-Files' job is to <b>end the talking stage</b>. Every match has a shelf life: at the halfway mark the app <b>auto-proposes a coffee date</b> ☕. Set a plan before the deadline or the match <b>expires</b> — no more three-week chats that go nowhere.</p>
+      <div id="stagePanel"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
+        <button class="go tsbtn" data-act="new" style="flex:1; min-width:130px; background:#33546e; color:#fff;">New match ⏳</button>
+        <button class="go tsbtn" data-act="propose" style="flex:1; min-width:130px;">Propose coffee ☕</button>
+        <button class="go tsbtn" data-act="accept" style="flex:1; min-width:130px; background:var(--green); color:#fff;">Match accepts 💚</button>
+      </div>
+      <div id="stageLog" class="beat"></div>
+    </div>
+
     <footer>
       Runs on any feature phone too — dial the USSD demo. Built for the Open Hackathon. 🐐
     </footer>
@@ -381,6 +393,74 @@
     });
 
     setupGateDemo();
+
+    // --- Talking-Stage Clock demo ---
+    const TA = '+256720000001';
+    const TB = '+256720000002';
+    let stageMatchId = null;
+    const stagePanel = document.getElementById('stagePanel');
+    const stageLog = document.getElementById('stageLog');
+    const PHASE = {
+      talking: { label: '💬 Talking stage', color: 'var(--muted)' },
+      nudge: { label: '☕ App proposed a coffee date', color: 'var(--orange)' },
+      planned: { label: '✅ Date set — go meet!', color: 'var(--green)' },
+      expired: { label: '💀 Match expired', color: 'var(--red)' },
+    };
+
+    async function newStageMatch() {
+      stageLog.textContent = '';
+      const m = await api('/api/match', { phoneA: TA, phoneB: TB });
+      stageMatchId = m.id;
+      renderStage();
+    }
+
+    async function renderStage() {
+      const data = await (await fetch('/api/stage')).json();
+      const m = data.matches.find((x) => x.id === stageMatchId) || data.matches[data.matches.length - 1];
+      if (!m) { stagePanel.innerHTML = '<span style="color:var(--muted)">Tap “New match” to start a clock.</span>'; return; }
+      stageMatchId = m.id;
+      const info = PHASE[m.phase] || PHASE.talking;
+      const pct = Math.min(100, Math.round((m.elapsedMs / data.stageMs) * 100));
+      const left = Math.max(0, Math.round(m.timeLeftMs / 1000));
+      const nudgePct = Math.round((data.nudgeAt / data.stageMs) * 100);
+      const done = m.phase === 'planned' || m.phase === 'expired';
+      const barColor = m.phase === 'expired' ? 'var(--red)' : (m.phase === 'planned' ? 'var(--green)' : 'var(--orange)');
+      const plan = m.proposal
+        ? '☕ Plan: ' + m.proposal.plan.activity + ' (' + m.proposal.plan.duration + ') ' + m.proposal.plan.when +
+          ' — proposed by ' + (m.proposal.by === 'system' ? 'Ex-Files' : 'you') +
+          '. Accepted: ' + m.acceptedBy.length + '/2'
+        : 'No plan yet. The app will step in at the halfway mark.';
+      stagePanel.innerHTML =
+        '<div style="font-weight:700;color:' + info.color + '">' + info.label + '</div>' +
+        '<div style="margin-top:8px;position:relative;height:12px;border-radius:999px;background:#0e2233;overflow:hidden">' +
+          '<div style="position:absolute;left:' + nudgePct + '%;top:0;bottom:0;width:2px;background:#ffffff55"></div>' +
+          '<div style="height:100%;width:' + pct + '%;background:' + barColor + ';transition:width .5s"></div>' +
+        '</div>' +
+        '<div style="margin-top:6px;color:var(--muted);font-size:.85rem">' + (done ? '' : left + 's until the match expires · the white line is when the app auto-proposes') + '</div>' +
+        '<div style="margin-top:10px;color:var(--muted)">' + plan + '</div>';
+    }
+
+    document.querySelectorAll('.tsbtn').forEach((btn) => {
+      btn.onclick = async () => {
+        const act = btn.dataset.act;
+        if (act === 'new') { await newStageMatch(); return; }
+        if (!stageMatchId) await newStageMatch();
+        if (act === 'propose') { await api('/api/propose', { matchId: stageMatchId, by: TA }); stageLog.textContent = '☕ You proposed a coffee date.'; }
+        if (act === 'accept') {
+          const r = await api('/api/accept', { matchId: stageMatchId, phone: TB });
+          stageLog.textContent = r.status === 'planned' ? '✅ Both said yes — the date is set!' : '💚 Your match accepted. Waiting on the other yes…';
+        }
+        renderStage();
+      };
+    });
+
+    // Drive the clock live: advance + re-render every second.
+    newStageMatch();
+    setInterval(async () => {
+      if (!stageMatchId) return;
+      await fetch('/api/stage/tick', { method: 'POST' });
+      renderStage();
+    }, 1000);
   </script>
 </body>
 </html>

@@ -95,6 +95,41 @@ Endpoints: `POST /api/match`, `POST /api/message` (resets the clock, re-arms the
 goat), `GET /api/matches` (inspect silence state), `POST /api/tick` (scan now),
 `POST /voice` (AT Voice callback).
 
+## The Talking-Stage Clock ⏳ (flagship)
+
+Every other app is built to keep you texting forever. Ex-Files does the
+opposite — its job is to **end the talking stage** before boredom does.
+
+Every match gets a shelf life (`TALKING_STAGE_MS`, a week in production):
+
+- **talking** — the early phase, right after matching.
+- **nudge** — at the halfway mark, if nobody has made a plan, the app
+  **auto-proposes a tiny coffee date** (20 minutes, this week). Momentum, forced.
+- **planned** — both people accepted a plan. Success, the clock stops. Go meet.
+- **expired** — the deadline passed with no plan, so the match gently dies
+  instead of dragging on for three weeks of "wyd".
+
+This ties the whole app together: the auto-proposal is delivered by the same
+**coffee voice call** and surfaced in the **chat**, and going quiet still trips
+the **Silence Timer**. The engine is `src/talkingStage.js` (injectable clock,
+fully tested).
+
+```bash
+# Demo it: matches expire in 60s, app auto-proposes at 30s
+TALKING_STAGE_MS=60000 npm start
+
+curl -s -X POST localhost:3000/api/match -H 'Content-Type: application/json' \
+  -d '{"phoneA":"+256700000001","phoneB":"+256700000002"}'
+# ...wait past 30s, then advance the clock:
+curl -s -X POST localhost:3000/api/stage/tick   # app auto-proposes coffee
+curl -s -X POST localhost:3000/api/accept -H 'Content-Type: application/json' -d '{"matchId":"m1","phone":"+256700000001"}'
+curl -s -X POST localhost:3000/api/accept -H 'Content-Type: application/json' -d '{"matchId":"m1","phone":"+256700000002"}'
+curl -s localhost:3000/api/stage   # -> phase: planned 🎉
+```
+
+Endpoints: `GET /api/stage` (lifecycle of every match), `POST /api/propose`,
+`POST /api/accept`, `POST /api/stage/tick` (advance the clock now).
+
 ## Photo & Location Gating 🛡️
 
 The safety / privacy / trust layer. Nothing about a person is revealed until

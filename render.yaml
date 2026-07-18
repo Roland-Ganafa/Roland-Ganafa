@@ -19,3 +19,5 @@ services:
         value: "+256200600600"
       - key: GOAT_AUDIO_URL
         sync: false          # optional: a DIRECT .mp3/.wav URL of a goat (not a web page)
+      - key: TALKING_STAGE_MS
+        value: "60000"       # demo: matches expire in 60s (prod would be ~7 days)

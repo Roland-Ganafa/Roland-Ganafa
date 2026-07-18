@@ -18,6 +18,7 @@ import { redFlagIndex, vibeScore, typeBeat, REFERENCE_QUESTIONS } from './matche
 import { MatchStore, SilenceTimer, DAY_MS } from './silenceTimer.js';
 import { voiceClientFromEnv, goatVoiceXml, goatDigitsResponseXml } from './voice.js';
 import { ProfileVault, MatchGate } from './gating.js';
+import { TalkingStageClock, WEEK_MS, defaultPlan } from './talkingStage.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -50,6 +51,13 @@ const GOAT_AUDIO_URL = process.env.GOAT_AUDIO_URL; // optional mp3 of a screamin
 // match plus a double opt-in (location, always coarse).
 const vault = new ProfileVault();
 const gate = new MatchGate();
+
+// --- Talking-Stage Clock wiring ---
+// Each match has a shelf life. At the halfway mark the app auto-proposes a
+// tiny coffee date; by the deadline with no plan, the match expires. Default
+// is a week; override with TALKING_STAGE_MS (e.g. 120000 for a 2-minute demo).
+const stageMs = Number(process.env.TALKING_STAGE_MS) || WEEK_MS;
+const talkingStage = new TalkingStageClock({ stageMs });
 
 // --- Africa's Talking USSD webhook ---
 app.post('/ussd', (req, res) => {
@@ -88,6 +96,7 @@ app.post('/api/match', (req, res) => {
   try {
     const match = store.createMatch(phoneA, phoneB);
     gate.register(match.id, match.participants); // start with everything gated
+    talkingStage.register(match.id, match.participants, match.createdAt); // start the clock
     res.status(201).json(match);
   } catch (err) {
     res.status(400).json({ error: String(err.message || err) });
@@ -226,6 +235,53 @@ app.get('/api/view', (req, res) => {
   }
 });
 
+// --- Talking-Stage Clock APIs ---
+
+// Inspect the lifecycle of every match: phase, time left, current plan.
+app.get('/api/stage', (_req, res) => {
+  const now = Date.now();
+  res.json({
+    stageMs,
+    nudgeAt: talkingStage.nudgeAt,
+    matches: talkingStage.list().map((m) => ({
+      id: m.id,
+      participants: m.participants,
+      status: m.status,
+      phase: talkingStage.phaseOf(m, now),
+      elapsedMs: talkingStage.elapsed(m, now),
+      timeLeftMs: talkingStage.timeLeft(m, now),
+      proposal: m.proposal,
+      acceptedBy: m.acceptedBy,
+    })),
+  });
+});
+
+// A participant proposes a concrete plan (defaults to the tiny coffee plan).
+app.post('/api/propose', (req, res) => {
+  const { matchId, by, plan } = req.body || {};
+  try {
+    res.json(talkingStage.propose(matchId, by, plan || defaultPlan()));
+  } catch (err) {
+    res.status(400).json({ error: String(err.message || err) });
+  }
+});
+
+// The other participant accepts the plan; both yeses set the date.
+app.post('/api/accept', (req, res) => {
+  const { matchId, phone } = req.body || {};
+  try {
+    res.json(talkingStage.accept(matchId, phone));
+  } catch (err) {
+    res.status(400).json({ error: String(err.message || err) });
+  }
+});
+
+// Run the clock once on demand (so the demo doesn't wait for the interval).
+app.post('/api/stage/tick', async (_req, res) => {
+  const events = await talkingStage.tick();
+  res.json({ events });
+});
+
 app.get('/health', (_req, res) => res.json({ ok: true, app: 'ex-files', goat: '🐐' }));
 
 const PORT = process.env.PORT || 3000;
@@ -233,10 +289,12 @@ const PORT = process.env.PORT || 3000;
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(PORT, () => {
     silenceTimer.start();
+    talkingStage.start(Math.min(15_000, Math.max(1000, Math.round(stageMs / 8)))); // finer ticks for short demos
     const mode = voiceClient.constructor.name === 'DryRunVoiceClient' ? 'dry-run 🐐' : 'live AT Voice';
     console.log(`💘 Ex-Files running on http://localhost:${PORT}`);
     console.log(`   USSD webhook:   POST /ussd`);
     console.log(`   Silence timer:  every ${silenceTimer.checkIntervalMs / 1000}s, threshold ${silenceMs / 1000}s (${mode})`);
+    console.log(`   Talking stage:  deadline ${Math.round(stageMs / 1000)}s, nudge at ${Math.round(talkingStage.nudgeAt / 1000)}s`);
     console.log(`   Web demo:       GET  /`);
   });
 }
