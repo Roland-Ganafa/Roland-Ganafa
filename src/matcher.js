@@ -3,7 +3,7 @@
 // (They are not serious. But they run.)
 
 // The Ex-Files Reference Check questions. Users answer these about THEMSELVES,
-// then answer the same questions about their most recent ex. The gap between
+// then answer the same questions about their current crush. The gap between
 // the two answers is where the truth (and the comedy) lives.
 export const REFERENCE_QUESTIONS = [
   { key: 'available', text: 'Emotionally available?' },
@@ -19,29 +19,29 @@ const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 /**
  * Red Flag Index.
  * self:  { available: bool, replies: bool, ... } — what you say about you.
- * ex:    the same shape — what you say about your ex.
+ * crush: the same shape — what you say about your current crush.
  *
- * The theory: the way you describe your ex is a confession about the
- * relationships you keep choosing. Every "my ex was NOT available / did NOT
- * reply / did NOT show up" is a red flag you signed up for on purpose.
- * We also lightly tax people who claim to have zero red flags themselves,
- * because that is, statistically, the biggest red flag of all.
+ * The theory: the way you describe your crush is a preview of the
+ * relationship you're about to sign up for. Every "my crush is NOT available /
+ * does NOT reply / does NOT show up" is a red flag you're walking into with
+ * your eyes open. We also lightly tax people who claim to have zero red flags
+ * themselves, because that is, statistically, the biggest red flag of all.
  *
  * @returns {{score:number, band:string, verdict:string, flags:string[]}}
  */
-export function redFlagIndex(self, ex) {
+export function redFlagIndex(self, crush) {
   const flags = [];
   let score = 0;
 
-  // Each negative trait you assign to your ex is worth 15 points.
-  const exBurns = {
-    available: 'Chose someone emotionally unavailable (on purpose).',
-    replies: 'Dated a professional ghost.',
-    plans: 'Kept saying yes to a serial no-show.',
-    closure: 'Left the relationship on read.',
+  // Each negative trait you assign to your crush is worth 15 points.
+  const crushFlags = {
+    available: 'Crushing on someone emotionally unavailable (on purpose).',
+    replies: 'About to chase a professional ghost.',
+    plans: 'Falling for a serial no-show.',
+    closure: 'Eyeing someone who leaves things on read.',
   };
-  for (const [key, msg] of Object.entries(exBurns)) {
-    if (ex[key] === false) {
+  for (const [key, msg] of Object.entries(crushFlags)) {
+    if (crush[key] === false) {
       score += 15;
       flags.push(msg);
     }
@@ -132,9 +132,9 @@ export function vibeScore(a, b) {
   return { score, verdict, notes };
 }
 
-// The Type Beat Detector: what you claim vs. what you keep choosing.
-export function typeBeat(self, ex) {
+// The Type Beat Detector: what you claim vs. who you're actually crushing on.
+export function typeBeat(self, crush) {
   const claimed = self.available ? 'ambitious and available' : 'a work in progress';
-  const actual = ex.available === false ? 'emotionally unavailable' : 'genuinely available';
-  return `You say your type is "${claimed}." Based on your ex, your type is actually "${actual}." Matched accordingly.`;
+  const actual = crush.available === false ? 'emotionally unavailable' : 'genuinely available';
+  return `You say your type is "${claimed}." Based on your crush, your type is actually "${actual}." Matched accordingly.`;
 }

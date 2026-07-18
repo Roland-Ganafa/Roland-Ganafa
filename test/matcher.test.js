@@ -3,26 +3,26 @@ import assert from 'node:assert/strict';
 import { redFlagIndex, vibeScore } from '../src/matcher.js';
 import { handleUssd } from '../src/ussd.js';
 
-test('red flag index: saint who dated a saint scores low', () => {
+test('red flag index: saint crushing on a saint scores low', () => {
   const self = { available: true, replies: true, plans: true, closure: true, redflags: false };
-  const ex = { available: true, replies: true, plans: true, closure: true, redflags: false };
-  const r = redFlagIndex(self, ex);
+  const crush = { available: true, replies: true, plans: true, closure: true, redflags: false };
+  const r = redFlagIndex(self, crush);
   assert.equal(r.score, 0);
   assert.equal(r.band, 'Green');
 });
 
 test('red flag index: "zero red flags" self-claim is taxed', () => {
   const self = { available: true, replies: true, plans: true, closure: true, redflags: true };
-  const ex = { available: true, replies: true, plans: true, closure: true, redflags: false };
-  const r = redFlagIndex(self, ex);
+  const crush = { available: true, replies: true, plans: true, closure: true, redflags: false };
+  const r = redFlagIndex(self, crush);
   assert.equal(r.score, 25);
   assert.ok(r.flags.some((f) => f.includes('zero red flags')));
 });
 
-test('red flag index: burning your ex on everything caps sensibly', () => {
+test('red flag index: crushing on every red flag caps sensibly', () => {
   const self = { available: false, replies: false, plans: false, closure: false, redflags: true };
-  const ex = { available: false, replies: false, plans: false, closure: false, redflags: false };
-  const r = redFlagIndex(self, ex);
+  const crush = { available: false, replies: false, plans: false, closure: false, redflags: false };
+  const r = redFlagIndex(self, crush);
   assert.ok(r.score >= 75);
   assert.ok(r.score <= 100);
 });

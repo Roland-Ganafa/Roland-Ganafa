@@ -14,8 +14,8 @@ cries in a Bolt. Ex-Files fixes this with **technology** and a **light,
 consensual amount of emotional damage.**
 
 You can't send a first message. You first pass the **Ex-Files Reference Check**:
-answer five questions about **yourself**, then the same five about your **most
-recent ex**. The gap between the two is where the truth lives — and it becomes
+answer five questions about **yourself**, then the same five about your **current
+crush**. The gap between the two is where the truth lives — and it becomes
 your **Red Flag Index™**.
 
 The whole thing runs over **USSD** (`*256#`-style), so it works on any feature
@@ -145,7 +145,7 @@ and `text`. Simulate a full session (menu → 10 answers) with curl:
 curl -s -X POST localhost:3000/ussd -d 'text='
 
 # Pick 1 (Red Flag Index), then answer the 10 Yes/No questions.
-# Here: 1 (menu), then five "No" about you, five "No" about your ex.
+# Here: 1 (menu), then five "No" about you, five "No" about your crush.
 curl -s -X POST localhost:3000/ussd -d 'text=1*2*2*2*2*2*2*2*2*2*2'
 ```
 

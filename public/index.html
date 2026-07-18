@@ -85,10 +85,10 @@
 
     <div class="card">
       <h2>The Ex-Files <span class="q">Reference Check</span></h2>
-      <p class="hint">Answer honestly about <b>yourself</b> and about your <b>most recent ex</b>. The gap between the two is your Red Flag Index™.</p>
+      <p class="hint">Answer honestly about <b>yourself</b> and about your <b>current crush</b>. The gap between the two is your Red Flag Index™.</p>
       <table>
         <thead>
-          <tr><th>Question</th><th>You</th><th>Your ex</th></tr>
+          <tr><th>Question</th><th>You</th><th>Your crush</th></tr>
         </thead>
         <tbody id="rows"></tbody>
       </table>
@@ -146,7 +146,7 @@
   </div>
 
   <script>
-    const state = { self: {}, ex: {} };
+    const state = { self: {}, crush: {} };
     let QUESTIONS = [];
 
     function toggle(who, key, val, btnYes, btnNo) {
@@ -179,12 +179,12 @@
         const td2 = document.createElement('td');
         td2.append(makeToggle('self', q.key));
         const td3 = document.createElement('td');
-        td3.append(makeToggle('ex', q.key));
+        td3.append(makeToggle('crush', q.key));
         tr.append(td1, td2, td3);
         rows.append(tr);
         // sensible defaults so the demo is one-click
         state.self[q.key] = false;
-        state.ex[q.key] = false;
+        state.crush[q.key] = false;
       }
     }
 

@@ -65,9 +65,11 @@ app.get('/api/questions', (_req, res) => {
 });
 
 app.post('/api/redflag', (req, res) => {
-  const { self = {}, ex = {} } = req.body || {};
-  const result = redFlagIndex(self, ex);
-  result.typeBeat = typeBeat(self, ex);
+  // Accept `crush` (current wording); fall back to `ex` for older clients.
+  const { self = {}, crush, ex = {} } = req.body || {};
+  const other = crush || ex;
+  const result = redFlagIndex(self, other);
+  result.typeBeat = typeBeat(self, other);
   res.json(result);
 });
 
