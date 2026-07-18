@@ -115,6 +115,21 @@
       <div id="goatLog" class="beat"></div>
     </div>
 
+    <div class="card">
+      <h2>Photo &amp; Location <span class="q">Gating</span> 🛡️</h2>
+      <p class="hint">Safety first: <b>no photo until you both like each other</b>, and <b>location only after a mutual match AND a double opt-in</b> — and even then it's shown as an approximate area, never exact coordinates. Below, you're <b>Amara</b> looking at <b>Brian</b>.</p>
+      <div id="gateView"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
+        <button class="go gbtn" data-act="likeA" style="flex:1; min-width:120px; background:var(--green); color:#fff;">Amara likes 💚</button>
+        <button class="go gbtn" data-act="likeB" style="flex:1; min-width:120px; background:var(--green); color:#fff;">Brian likes 💚</button>
+        <button class="go gbtn" data-act="locA" style="flex:1; min-width:120px;">Amara shares location</button>
+        <button class="go gbtn" data-act="locB" style="flex:1; min-width:120px;">Brian shares location</button>
+        <button class="go gbtn" data-act="hideB" style="flex:1; min-width:120px; background:#7a5b0f; color:#fff;">Brian hides photo</button>
+        <button class="go gbtn" data-act="block" style="flex:1; min-width:120px; background:var(--red); color:#fff;">Brian blocks 🚫</button>
+        <button class="go gbtn" data-act="reset" style="flex:1; min-width:120px; background:#33546e; color:#fff;">Reset demo ↺</button>
+      </div>
+    </div>
+
     <footer>
       Runs on any feature phone too — dial the USSD demo. Built for the Open Hackathon. 🐐
     </footer>
@@ -240,6 +255,60 @@
     };
 
     setInterval(() => { if (matchId) refreshSilence(); }, 1000);
+
+    // --- Photo & Location Gating demo ---
+    const AMARA = '+256710000001';
+    const BRIAN = '+256710000002';
+    let gateMatchId = null;
+    const gateView = document.getElementById('gateView');
+
+    async function api(path, body) {
+      return (await fetch(path, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })).json();
+    }
+
+    async function setupGateDemo() {
+      await api('/api/profile', { phone: AMARA, displayName: 'Amara N', photoUrl: 'https://placehold.co/80x80/1f9d55/fff?text=A', area: 'Ntinda, Kampala' });
+      await api('/api/profile', { phone: BRIAN, displayName: 'Brian K', photoUrl: 'https://placehold.co/80x80/f4901e/000?text=B', lat: 0.34765, lng: 32.61234 });
+      const m = await api('/api/match', { phoneA: AMARA, phoneB: BRIAN });
+      gateMatchId = m.id;
+      renderGate();
+    }
+
+    async function renderGate() {
+      if (!gateMatchId) return;
+      const v = await (await fetch('/api/view?matchId=' + gateMatchId + '&viewer=' + encodeURIComponent(AMARA))).json();
+      const photoBox = v.photo.visible
+        ? '<img src="' + v.photo.url + '" alt="photo" style="width:64px;height:64px;border-radius:12px;vertical-align:middle"/>'
+        : '<span style="display:inline-block;width:64px;height:64px;border-radius:12px;background:#22201c;text-align:center;line-height:64px;font-size:1.6rem;vertical-align:middle">🔒</span>';
+      const loc = v.location.visible
+        ? (v.location.value.area || ('~(' + v.location.value.approxLat + ', ' + v.location.value.approxLng + ') ' + v.location.value.precision))
+        : '🔒 hidden';
+      gateView.innerHTML =
+        '<div style="display:flex;align-items:center;gap:14px">' + photoBox +
+        '<div><div style="font-size:1.15rem;font-weight:700">' + v.name + (v.mutual ? ' 💘' : '') + '</div>' +
+        '<div style="color:var(--muted);font-size:.85rem;margin-top:2px">' + v.photo.reason + '</div></div></div>' +
+        '<div style="margin-top:12px;color:var(--muted)">📍 Location: <b style="color:var(--orange)">' + loc + '</b><br><span style="font-size:.85rem">' + v.location.reason + '</span></div>';
+    }
+
+    document.querySelectorAll('.gbtn').forEach((btn) => {
+      btn.onclick = async () => {
+        const act = btn.dataset.act;
+        if (act === 'reset') { await setupGateDemo(); return; }
+        if (!gateMatchId) await setupGateDemo();
+        if (act === 'likeA') await api('/api/like', { matchId: gateMatchId, phone: AMARA });
+        if (act === 'likeB') await api('/api/like', { matchId: gateMatchId, phone: BRIAN });
+        if (act === 'locA') await api('/api/consent/location', { matchId: gateMatchId, phone: AMARA });
+        if (act === 'locB') await api('/api/consent/location', { matchId: gateMatchId, phone: BRIAN });
+        if (act === 'hideB') await api('/api/consent/photo', { matchId: gateMatchId, phone: BRIAN, shared: false });
+        if (act === 'block') await api('/api/block', { matchId: gateMatchId, phone: BRIAN });
+        renderGate();
+      };
+    });
+
+    setupGateDemo();
   </script>
 </body>
 </html>
