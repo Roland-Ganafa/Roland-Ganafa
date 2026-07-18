@@ -60,45 +60,44 @@ test('silence timer: activity re-arms the goat for a future silence', async () =
   assert.equal(voice.calls.length, 4);
 });
 
-test('goat XML: plays an audio url when configured', () => {
+test('call XML: plays an audio url when configured', () => {
   const xml = goatVoiceXml('https://example.com/goat.mp3');
   assert.match(xml, /<Play url="https:\/\/example\.com\/goat\.mp3"\/>/);
-  assert.match(xml, /wellness check/);
+  assert.match(xml, /have a coffee/);
 });
 
-test('goat XML: falls back to a spoken goat when no url', () => {
+test('call XML: no <Play> when no direct audio url', () => {
   const xml = goatVoiceXml();
-  assert.match(xml, /Maaa/);
+  assert.match(xml, /have a coffee/);
   assert.doesNotMatch(xml, /<Play/);
 });
 
-test('goat XML: escapes ampersands in the audio url', () => {
+test('call XML: escapes ampersands in the audio url', () => {
   const xml = goatVoiceXml('https://x.io/g.mp3?a=1&b=2');
   assert.match(xml, /a=1&amp;b=2/);
   assert.doesNotMatch(xml, /a=1&b=2/);
 });
 
-test('goat XML: wraps the prompt in a GetDigits menu (AT call action)', () => {
+test('call XML: wraps the coffee invite in a GetDigits menu (AT call action)', () => {
   const xml = goatVoiceXml();
   assert.match(xml, /<Response>/);
   assert.match(xml, /<GetDigits[^>]*numDigits="1"[^>]*>/);
-  assert.match(xml, /Press 1 to text your match/);
+  assert.match(xml, /Press 1 if yes/);
   assert.match(xml, /<\/GetDigits>/);
 });
 
-test('goat digits response: 1 nudges the match', () => {
+test('call digits response: 1 sets up the coffee', () => {
   const xml = goatDigitsResponseXml('1');
-  assert.match(xml, /nudged your match/);
-  assert.doesNotMatch(xml, /disappointed/);
+  assert.match(xml, /coffee/i);
+  assert.doesNotMatch(xml, /another time/);
 });
 
-test('goat digits response: 2 shames with a goat', () => {
+test('call digits response: 2 politely defers', () => {
   const xml = goatDigitsResponseXml('2');
-  assert.match(xml, /disappointed/);
-  assert.match(xml, /Maaaa/);
+  assert.match(xml, /another time/);
 });
 
-test('goat digits response: anything else is a confused goat', () => {
+test('call digits response: anything else asks again later', () => {
   const xml = goatDigitsResponseXml('9');
-  assert.match(xml, /confused/);
+  assert.match(xml, /again later/);
 });

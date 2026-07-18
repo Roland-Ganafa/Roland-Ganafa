@@ -24,29 +24,29 @@ function isDirectAudio(url) {
  * Build the AT Voice XML played when a goat call connects.
  *
  * Uses the documented call actions: a <GetDigits> block wraps the prompt
- * (<Say> + the goat via <Play> or a spoken fallback) so the callee can press a
- * key. Africa's Talking submits the pressed digit to `callbackUrl` (or the
- * number's default callback if omitted) — handled by goatDigitsResponseXml.
- * If they press nothing, the trailing <Say> plays.
+ * (<Say> the coffee invite, plus an optional sound via <Play>) so the callee
+ * can press a key. Africa's Talking submits the pressed digit to `callbackUrl`
+ * (or the number's default callback if omitted) — handled by
+ * goatDigitsResponseXml. If they press nothing, the trailing <Say> plays.
  *
- * @param {string} [goatAudioUrl] optional DIRECT mp3/wav of a screaming goat
+ * @param {string} [goatAudioUrl] optional DIRECT mp3/wav to play as intro flair
  * @param {string} [callbackUrl] absolute URL AT should post the pressed key to
  * @returns {string} XML
  */
 export function goatVoiceXml(goatAudioUrl, callbackUrl) {
-  const goat = isDirectAudio(goatAudioUrl)
-    ? `    <Play url="${escapeXml(goatAudioUrl)}"/>`
-    : `    <Say voice="man">Maaaaaaaaaaaaaa. Maaaaaa.</Say>`;
+  const sound = isDirectAudio(goatAudioUrl)
+    ? [`    <Play url="${escapeXml(goatAudioUrl)}"/>`]
+    : [];
   const cb = callbackUrl ? ` callbackUrl="${escapeXml(callbackUrl)}"` : '';
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<Response>',
     `  <GetDigits timeout="20" numDigits="1" finishOnKey="#"${cb}>`,
-    '    <Say>Hello. This is an automated wellness check from Ex-Files.</Say>',
-    goat,
-    '    <Say>That was a goat. You have been silent for 24 hours. Press 1 to text your match right now, or press 2 to hang up in shame.</Say>',
+    '    <Say>Hi! Someone on Ex-Files has a crush on you.</Say>',
+    ...sound,
+    '    <Say>Can we meet up and have a coffee sometime? Press 1 if yes, let us do it. Press 2 for maybe later.</Say>',
     '  </GetDigits>',
-    '  <Say>We did not catch that. The goat will call again. Goodbye.</Say>',
+    '  <Say>We did not catch that. We will ask again another time. Goodbye.</Say>',
     '</Response>',
   ].join('\n');
 }
@@ -61,14 +61,11 @@ export function goatVoiceXml(goatAudioUrl, callbackUrl) {
 export function goatDigitsResponseXml(digits) {
   let lines;
   if (digits === '1') {
-    lines = ['  <Say>Great. We have nudged your match. Do not blow it. Goodbye.</Say>'];
+    lines = ['  <Say>Amazing! We will let them know and send you both a time to meet. Enjoy the coffee. Goodbye.</Say>'];
   } else if (digits === '2') {
-    lines = [
-      '  <Say voice="man">Maaaa.</Say>',
-      '  <Say>The goat is disappointed in you. Goodbye.</Say>',
-    ];
+    lines = ['  <Say>No problem at all. Maybe another time. Goodbye.</Say>'];
   } else {
-    lines = ['  <Say>That was not 1 or 2. The goat is confused. Goodbye.</Say>'];
+    lines = ['  <Say>That was not 1 or 2. We will ask again later. Goodbye.</Say>'];
   }
   return ['<?xml version="1.0" encoding="UTF-8"?>', '<Response>', ...lines, '</Response>'].join('\n');
 }

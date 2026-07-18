@@ -70,10 +70,12 @@ Conversation resumes immediately, out of sheer confusion.
   goat; otherwise the call falls back to a spoken goat. See `.env.example`.
 - The `/voice` callback is a proper interactive IVR built on the documented
   [AT Voice call actions](https://developers.africastalking.com/docs/voice/actions/call_actions):
-  it plays the goat inside a **`GetDigits`** menu — *press 1 to text your match,
-  2 to hang up in shame*. AT posts the pressed key back to the same `/voice`
-  URL, which replies with the follow-up action; the call-ended ping (`isActive=0`)
-  is acknowledged with an empty body.
+  it asks the match out inside a **`GetDigits`** menu — *"Can we meet up and
+  have a coffee sometime? Press 1 if yes, press 2 for maybe later."* AT posts
+  the pressed key back to the same `/voice` URL, which replies (1 → set up the
+  coffee, 2 → maybe another time); the call-ended ping (`isActive=0`) is
+  acknowledged with an empty body. `GOAT_AUDIO_URL`, if set to a direct
+  `.mp3`/`.wav`, plays as intro flair.
 
 ```bash
 # Demo it: goat fires 8s after a match goes quiet
