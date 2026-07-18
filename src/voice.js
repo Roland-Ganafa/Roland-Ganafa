@@ -114,15 +114,20 @@ export class DryRunVoiceClient {
   }
 }
 
+// Our Africa's Talking Voice caller id (the number the goat calls come from).
+// A phone number, not a secret — override with AT_VOICE_NUMBER if it changes.
+export const DEFAULT_VOICE_NUMBER = '+256323200942';
+
 /**
  * Pick a client based on the environment: real if credentials exist, else
- * a dry-run so nothing breaks without secrets.
+ * a dry-run so nothing breaks without secrets. The caller id defaults to our
+ * AT voice number, but real calls still require AT_USERNAME + AT_API_KEY.
  */
 export function voiceClientFromEnv(env = process.env) {
   const cfg = {
     username: env.AT_USERNAME,
     apiKey: env.AT_API_KEY,
-    from: env.AT_VOICE_NUMBER,
+    from: env.AT_VOICE_NUMBER || DEFAULT_VOICE_NUMBER,
   };
   const client = new VoiceClient(cfg);
   return client.configured ? client : new DryRunVoiceClient();
