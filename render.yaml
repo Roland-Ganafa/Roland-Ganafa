@@ -18,4 +18,4 @@ services:
       - key: AT_VOICE_NUMBER
         value: "+256200600600"
       - key: GOAT_AUDIO_URL
-        sync: false          # optional: URL of an mp3 of a screaming goat
+        value: "https://heartmatch.nlis.farm/"   # goat sound played on the call
