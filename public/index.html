@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ex-Files 💘 — Verify vibes before feelings</title>
+  <style>
+    :root {
+      --navy: #0b1e2d;
+      --navy2: #12283a;
+      --orange: #f4901e;
+      --green: #1f9d55;
+      --red: #e4322b;
+      --ink: #eaf2f8;
+      --muted: #9fb3c2;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: radial-gradient(1200px 600px at 80% -10%, #16344a 0%, var(--navy) 55%);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 24px 16px 60px;
+    }
+    .wrap { max-width: 760px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 8px; }
+    .logo { font-size: 2.6rem; font-weight: 800; letter-spacing: -1px; }
+    .logo .love { color: var(--red); }
+    .tag { color: var(--orange); font-weight: 700; margin-top: 2px; }
+    .sub { color: var(--muted); font-size: .95rem; margin-top: 6px; }
+    .nerds { display:inline-block; margin-top:10px; font-size:.8rem; color:var(--green); font-weight:700; }
+    .card {
+      background: linear-gradient(180deg, var(--navy2), #0e2233);
+      border: 1px solid #21455f;
+      border-radius: 18px;
+      padding: 22px;
+      margin-top: 22px;
+      box-shadow: 0 10px 40px rgba(0,0,0,.35);
+    }
+    h2 { margin: 0 0 4px; font-size: 1.15rem; }
+    h2 .q { color: var(--orange); }
+    .hint { color: var(--muted); font-size: .85rem; margin: 0 0 16px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 10px 6px; text-align: left; font-size: .95rem; border-bottom: 1px solid #1c3a52; }
+    th { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }
+    td.q { color: var(--ink); }
+    .toggle { display: inline-flex; border: 1px solid #2b526e; border-radius: 999px; overflow: hidden; }
+    .toggle button {
+      border: 0; background: transparent; color: var(--muted);
+      padding: 6px 14px; cursor: pointer; font-weight: 700; font-size: .85rem;
+    }
+    .toggle button.on-yes { background: var(--green); color: #fff; }
+    .toggle button.on-no  { background: var(--red); color: #fff; }
+    .go {
+      margin-top: 18px; width: 100%; border: 0; border-radius: 12px;
+      background: var(--orange); color: #0b1e2d; font-weight: 800; font-size: 1.05rem;
+      padding: 14px; cursor: pointer;
+    }
+    .go:hover { filter: brightness(1.05); }
+    .result { display: none; }
+    .result.show { display: block; }
+    .score { font-size: 3.4rem; font-weight: 800; line-height: 1; }
+    .band { display:inline-block; padding: 4px 12px; border-radius: 999px; font-weight: 800; font-size: .8rem; margin-left: 8px; vertical-align: middle;}
+    .band.Green { background: var(--green); color:#fff; }
+    .band.Amber { background: var(--orange); color:#0b1e2d; }
+    .band.Red { background: var(--red); color:#fff; }
+    .band.Crimson { background: #7a0f14; color:#fff; }
+    .verdict { color: var(--ink); margin: 10px 0 2px; font-size: 1.05rem; }
+    .beat { color: var(--orange); font-style: italic; margin: 12px 0; }
+    ul.flags { margin: 8px 0 0; padding-left: 18px; color: var(--muted); }
+    ul.flags li { margin: 4px 0; }
+    footer { text-align:center; color: var(--muted); font-size:.8rem; margin-top: 28px; }
+    a { color: var(--orange); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">Ex-<span class="love">Files</span> 💘</div>
+      <div class="tag">Verify vibes before feelings.</div>
+      <div class="sub">Reimagining Dating &amp; Social Networks — Africa's Talking Community Uganda</div>
+      <div class="nerds">#WeLoveNerds 🇺🇬</div>
+    </header>
+
+    <div class="card">
+      <h2>The Ex-Files <span class="q">Reference Check</span></h2>
+      <p class="hint">Answer honestly about <b>yourself</b> and about your <b>most recent ex</b>. The gap between the two is your Red Flag Index™.</p>
+      <table>
+        <thead>
+          <tr><th>Question</th><th>You</th><th>Your ex</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <button class="go" id="run">Run my Red Flag Index →</button>
+    </div>
+
+    <div class="card result" id="result">
+      <h2>Verdict</h2>
+      <div><span class="score" id="score">–</span><span class="band" id="band"></span></div>
+      <div class="verdict" id="verdict"></div>
+      <div class="beat" id="beat"></div>
+      <ul class="flags" id="flags"></ul>
+    </div>
+
+    <footer>
+      Runs on any feature phone too — dial the USSD demo. Built for the Open Hackathon. 🐐
+    </footer>
+  </div>
+
+  <script>
+    const state = { self: {}, ex: {} };
+    let QUESTIONS = [];
+
+    function toggle(who, key, val, btnYes, btnNo) {
+      state[who][key] = val;
+      btnYes.classList.toggle('on-yes', val === true);
+      btnNo.classList.toggle('on-no', val === false);
+    }
+
+    function makeToggle(who, key) {
+      const wrap = document.createElement('div');
+      wrap.className = 'toggle';
+      const yes = document.createElement('button');
+      yes.textContent = 'Yes';
+      const no = document.createElement('button');
+      no.textContent = 'No';
+      yes.onclick = () => toggle(who, key, true, yes, no);
+      no.onclick = () => toggle(who, key, false, yes, no);
+      wrap.append(yes, no);
+      return wrap;
+    }
+
+    async function load() {
+      QUESTIONS = await (await fetch('/api/questions')).json();
+      const rows = document.getElementById('rows');
+      for (const q of QUESTIONS) {
+        const tr = document.createElement('tr');
+        const td1 = document.createElement('td');
+        td1.className = 'q';
+        td1.textContent = q.text;
+        const td2 = document.createElement('td');
+        td2.append(makeToggle('self', q.key));
+        const td3 = document.createElement('td');
+        td3.append(makeToggle('ex', q.key));
+        tr.append(td1, td2, td3);
+        rows.append(tr);
+        // sensible defaults so the demo is one-click
+        state.self[q.key] = false;
+        state.ex[q.key] = false;
+      }
+    }
+
+    document.getElementById('run').onclick = async () => {
+      const res = await (await fetch('/api/redflag', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state),
+      })).json();
+
+      document.getElementById('score').textContent = res.score;
+      const band = document.getElementById('band');
+      band.textContent = res.band;
+      band.className = 'band ' + res.band;
+      document.getElementById('verdict').textContent = res.verdict;
+      document.getElementById('beat').textContent = res.typeBeat;
+      const flags = document.getElementById('flags');
+      flags.innerHTML = '';
+      for (const f of res.flags) {
+        const li = document.createElement('li');
+        li.textContent = f;
+        flags.append(li);
+      }
+      document.getElementById('result').classList.add('show');
+      document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+    };
+
+    load();
+  </script>
+</body>
+</html>
