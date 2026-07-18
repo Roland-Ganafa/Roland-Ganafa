@@ -103,6 +103,18 @@
       <ul class="flags" id="flags"></ul>
     </div>
 
+    <div class="card">
+      <h2>The Awkward <span class="q">Silence Timer</span> 🐐</h2>
+      <p class="hint">Match two people. If they go quiet past the threshold, Ex-Files calls <b>both</b> of them and plays the <b>same goat scream</b> (Africa's Talking Voice). Conversation resumes out of confusion. Run the server with <code>SILENCE_MS=8000</code> to watch it fire in 8 seconds.</p>
+      <div id="silencePanel"></div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
+        <button class="go" id="mkMatch" style="flex:1; min-width:160px;">Create a match</button>
+        <button class="go" id="sendMsg" style="flex:1; min-width:160px; background:var(--green); color:#fff;">Send a message (reset)</button>
+        <button class="go" id="runTimer" style="flex:1; min-width:160px; background:var(--red); color:#fff;">Run silence timer now</button>
+      </div>
+      <div id="goatLog" class="beat"></div>
+    </div>
+
     <footer>
       Runs on any feature phone too — dial the USSD demo. Built for the Open Hackathon. 🐐
     </footer>
@@ -176,6 +188,58 @@
     };
 
     load();
+
+    // --- Awkward Silence Timer demo ---
+    let matchId = null;
+    const panel = document.getElementById('silencePanel');
+    const goatLog = document.getElementById('goatLog');
+
+    async function refreshSilence() {
+      const data = await (await fetch('/api/matches')).json();
+      const m = data.matches.find((x) => x.id === matchId) || data.matches[data.matches.length - 1];
+      if (!m) { panel.innerHTML = '<span style="color:var(--muted)">No match yet. Create one above.</span>'; return; }
+      matchId = m.id;
+      const secs = (m.silentMs / 1000).toFixed(1);
+      const threshold = (data.silenceMs / 1000).toFixed(0);
+      const fired = m.goatSentAt ? '🐐 GOAT DISPATCHED to both phones' : (m.silentEnough ? '⏳ silent enough — run the timer' : 'watching…');
+      panel.innerHTML =
+        '<div style="font-size:1.05rem">Match <b>' + m.id + '</b>: ' + m.participants.join(' 💘 ') + '</div>' +
+        '<div style="margin-top:6px;color:var(--muted)">Silent for <b style="color:var(--orange)">' + secs + 's</b> / ' + threshold + 's threshold — ' + fired + '</div>' +
+        '<div style="margin-top:4px;color:var(--muted)">Goat calls placed so far: <b>' + (data.goatCallsPlaced ?? 0) + '</b></div>';
+    }
+
+    document.getElementById('mkMatch').onclick = async () => {
+      const m = await (await fetch('/api/match', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phoneA: '+256700000001', phoneB: '+256700000002' }),
+      })).json();
+      matchId = m.id;
+      goatLog.textContent = '';
+      refreshSilence();
+    };
+
+    document.getElementById('sendMsg').onclick = async () => {
+      if (!matchId) return;
+      await fetch('/api/message', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId }),
+      });
+      goatLog.textContent = '💬 Message sent — silence clock reset, goat re-armed.';
+      refreshSilence();
+    };
+
+    document.getElementById('runTimer').onclick = async () => {
+      const res = await (await fetch('/api/tick', { method: 'POST' })).json();
+      if (res.dispatched.length) {
+        const calls = res.dispatched.flatMap((d) => d.results.map((r) => r.to));
+        goatLog.textContent = '🐐 Goat call placed to: ' + calls.join(', ') + '. They will call you back now.';
+      } else {
+        goatLog.textContent = 'No goat this round — not silent long enough yet.';
+      }
+      refreshSilence();
+    };
+
+    setInterval(() => { if (matchId) refreshSilence(); }, 1000);
   </script>
 </body>
 </html>

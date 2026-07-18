@@ -40,9 +40,48 @@ engage meaningfully while ensuring safety, privacy, trust, and inclusivity.*
 - **`src/matcher.js`** — the Red Flag Index, the Vibe Score, and the Type Beat
   Detector. Pure functions, fully tested.
 - **`src/ussd.js`** — the Africa's Talking USSD state machine (feature-phone flow).
-- **`src/server.js`** — Express server: USSD webhook + JSON APIs + web demo.
-- **`public/index.html`** — a styled web prototype of the Red Flag Index for the
-  stage demo.
+- **`src/silenceTimer.js`** — the Awkward Silence Timer: watches every match and
+  fires the goat after 24h of silence. Injectable clock + voice client.
+- **`src/voice.js`** — Africa's Talking Voice integration: places the outbound
+  goat call and builds the callback XML. Dry-run client when there are no
+  credentials.
+- **`src/server.js`** — Express server: USSD webhook + JSON APIs + Voice callback
+  + web demo.
+- **`public/index.html`** — a styled web prototype (Red Flag Index + a live
+  Awkward Silence Timer demo) for the stage.
+
+## The Awkward Silence Timer 🐐
+
+Every match carries a `lastActivityAt`. If two matched people go quiet longer
+than the threshold (24h in production), the timer places an **Africa's Talking
+Voice** call to **both** of them that plays the **same goat scream**.
+Conversation resumes immediately, out of sheer confusion.
+
+- Threshold is configurable with `SILENCE_MS` (e.g. `SILENCE_MS=8000` fires the
+  goat after 8 seconds — perfect for a live demo).
+- No AT credentials? It runs in **dry-run** mode and logs the goat calls it would
+  place, so the whole feature demos with zero secrets.
+- With credentials (`AT_USERNAME`, `AT_API_KEY`, `AT_VOICE_NUMBER`), it dials for
+  real. Set `GOAT_AUDIO_URL` to an mp3 of a screaming goat; otherwise the call
+  falls back to a spoken goat.
+
+```bash
+# Demo it: goat fires 8s after a match goes quiet
+SILENCE_MS=8000 npm start
+
+curl -s -X POST localhost:3000/api/match   -H 'Content-Type: application/json' \
+  -d '{"phoneA":"+256700000001","phoneB":"+256700000002"}'
+# ...wait 8s, then let the timer scan (or hit it on demand):
+curl -s -X POST localhost:3000/api/tick
+# -> goat call dispatched to BOTH numbers 🐐
+
+# Point AT's Voice callback at POST /voice to hear the goat XML that plays.
+curl -s -X POST localhost:3000/voice
+```
+
+Endpoints: `POST /api/match`, `POST /api/message` (resets the clock, re-arms the
+goat), `GET /api/matches` (inspect silence state), `POST /api/tick` (scan now),
+`POST /voice` (AT Voice callback).
 
 ## Run it
 
@@ -80,8 +119,8 @@ npm test
 - 🕵️ **Ex-Files Reference Check** — ✅ built (USSD + web)
 - 📟 **USSD Romance for the People** — ✅ built
 - 🤖 **Type Beat Detector** ("you say ambitious, you mean unavailable") — ✅ built
-- ⏳ **Awkward Silence Timer** — sends both users the same goat voice note after
-  24h of silence (Africa's Talking Voice API) — 🚧 next
+- ⏳ **Awkward Silence Timer** — same goat voice call to both users after 24h of
+  silence (Africa's Talking Voice API) — ✅ built (with dry-run + web demo)
 - 🛡️ Photo/location gating after mutual match — 🚧 next
 
 ## License
