@@ -18,6 +18,9 @@
   ],
   "author": "Roland Ganafa",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.12.0"
+  },
   "dependencies": {
     "express": "^4.19.2"
   }
